@@ -1,0 +1,15 @@
+{
+  "/api": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true,
+    "headers": {
+      "host": "demo.localhost"
+    }
+  },
+  "/uploads": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
