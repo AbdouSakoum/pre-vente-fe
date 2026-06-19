@@ -2,9 +2,11 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-orders',
@@ -16,8 +18,14 @@ import { AuthService } from '../../services/auth.service';
         <h2>Commandes</h2>
         <p class="page-subtitle">{{ orders.length }} commande(s)</p>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <select class="field-select" style="width:180px" [(ngModel)]="statusFilter" (ngModelChange)="load()">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="period-tabs">
+          <button class="ptab" [class.ptab-active]="periodFilter === 'today'"  (click)="setPeriod('today')">Aujourd'hui</button>
+          <button class="ptab" [class.ptab-active]="periodFilter === 'week'"   (click)="setPeriod('week')">Cette semaine</button>
+          <button class="ptab" [class.ptab-active]="periodFilter === 'month'"  (click)="setPeriod('month')">Ce mois</button>
+          <button class="ptab" [class.ptab-active]="periodFilter === 'all'"    (click)="setPeriod('all')">Tous</button>
+        </div>
+        <select class="field-select" style="width:160px" [(ngModel)]="statusFilter" (ngModelChange)="load()">
           <option value="">Tous les statuts</option>
           <option value="pending">En attente</option>
           <option value="assigned">Assignées</option>
@@ -96,8 +104,8 @@ import { AuthService } from '../../services/auth.service';
       </div>
     </div>
 
-    <!-- DRAWER NOUVELLE COMMANDE -->
-    <app-drawer [open]="showForm" title="Nouvelle commande" [saving]="saving"
+    <!-- DRAWER NOUVELLE / MODIFICATION COMMANDE -->
+    <app-drawer [open]="showForm" [title]="editingOrderId ? 'Modifier la commande' : 'Nouvelle commande'" [saving]="saving"
       (closed)="showForm=false" (saved)="saveOrder()">
 
       <!-- Client -->
@@ -190,7 +198,9 @@ import { AuthService } from '../../services/auth.service';
     <!-- DRAWER DETAIL -->
     <app-drawer [open]="showDetail"
       [title]="(selectedOrder?.order_number ? '#' + selectedOrder.order_number + ' — ' : '') + (selectedOrder?.client_name || '')"
-      [showFooter]="false" (closed)="showDetail=false">
+      [showFooter]="selectedOrder?.payment_status !== 'paid'"
+      saveLabel="Modifier" [saving]="false"
+      (closed)="showDetail=false" (saved)="openEdit(selectedOrder)">
       <div *ngIf="selectedOrder">
         <!-- Infos générales -->
         <div class="detail-row"><span>N° commande</span><b>#{{ selectedOrder.order_number || '—' }}</b></div>
@@ -221,8 +231,50 @@ import { AuthService } from '../../services/auth.service';
           <div class="tot-line"><span>TVA (20%)</span><span>{{ selectedOrder.total_tva | number:'1.2-2' }} DH</span></div>
           <div class="tot-line grand"><span>Total TTC</span><span>{{ selectedOrder.total_ttc | number:'1.2-2' }} DH</span></div>
         </div>
+
+        <!-- Actions PDF -->
+        <div class="pdf-actions">
+          <div class="pdf-title">Documents</div>
+          <div class="pdf-btns">
+            <button class="pdf-btn" (click)="viewPdf('bon-commande')" [disabled]="pdfLoading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Bon de commande
+            </button>
+            <button class="pdf-btn" (click)="viewPdf('bon-livraison')" [disabled]="pdfLoading" *ngIf="selectedOrder.status === 'delivered'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              Bon de livraison
+            </button>
+            <button class="pdf-btn pdf-btn-facture" (click)="viewPdf('facture')" [disabled]="pdfLoading" *ngIf="selectedOrder.status === 'delivered'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Facture
+            </button>
+          </div>
+          <div *ngIf="pdfLoading" style="margin-top:10px;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:6px">
+            <span class="pdf-spinner"></span> Génération en cours…
+          </div>
+        </div>
       </div>
     </app-drawer>
+
+    <!-- PDF VIEWER MODAL -->
+    <div class="pdf-overlay" *ngIf="pdfViewerUrl" (click)="closePdfViewer()">
+      <div class="pdf-modal" (click)="$event.stopPropagation()">
+        <div class="pdf-modal-bar">
+          <span class="pdf-modal-title">{{ pdfViewerTitle }}</span>
+          <div class="pdf-modal-actions">
+            <a [href]="pdfViewerUrl" [download]="pdfViewerTitle + '.pdf'" class="pdf-action-btn" title="Télécharger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Télécharger
+            </a>
+            <button class="pdf-action-btn pdf-close" (click)="closePdfViewer()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Fermer
+            </button>
+          </div>
+        </div>
+        <iframe [src]="pdfViewerUrl" class="pdf-iframe"></iframe>
+      </div>
+    </div>
 
     <!-- DRAWER ASSIGNATION -->
     <app-drawer [open]="showAssign" title="Assigner la commande" [saving]="saving"
@@ -240,6 +292,10 @@ import { AuthService } from '../../services/auth.service';
     </app-drawer>
   `,
   styles: [`
+    .period-tabs { display:flex;gap:4px;background:#f0f2f6;border-radius:10px;padding:3px }
+    .ptab { padding:6px 13px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:600;color:#64748b;cursor:pointer;transition:.13s;white-space:nowrap }
+    .ptab:hover { color:#1e293b }
+    .ptab-active { background:#fff;color:#3b82f6;box-shadow:0 1px 3px rgba(16,24,40,.1) }
     .item-title { font-size:14px; font-weight:500; color:#1e293b; }
     .item-sub { font-size:12px; color:#94a3b8; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .order-num { font-size:14px; font-weight:700; color:#1e293b; }
@@ -274,6 +330,29 @@ import { AuthService } from '../../services/auth.service';
     .totaux-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-top:16px; display:flex; flex-direction:column; gap:6px; }
     .tot-line { display:flex; justify-content:space-between; font-size:13px; color:#64748b; }
     .tot-line.grand { font-size:16px; font-weight:700; color:#1e293b; border-top:1px solid #e2e8f0; padding-top:8px; margin-top:4px; }
+    .pdf-actions { margin-top:18px; padding-top:14px; border-top:1px solid #f1f5f9; }
+    .pdf-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; margin-bottom:10px; }
+    .pdf-btns { display:flex; flex-wrap:wrap; gap:8px; }
+    .pdf-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:#374151; cursor:pointer; transition:.13s; }
+    .pdf-btn:hover { border-color:#2f6bff; color:#2f6bff; background:#f0f4ff; }
+    .pdf-btn svg { width:15px; height:15px; }
+    .pdf-btn-facture { border-color:#16a34a; color:#16a34a; }
+    .pdf-btn-facture:hover { background:#f0fdf4; border-color:#15803d; color:#15803d; }
+    .pdf-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .pdf-spinner { display:inline-block; width:13px; height:13px; border:2px solid #e2e8f0; border-top-color:#2f6bff; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    /* PDF Viewer */
+    .pdf-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .pdf-modal { display:flex; flex-direction:column; width:100%; max-width:900px; height:90vh; background:#1e2533; border-radius:14px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.5); }
+    .pdf-modal-bar { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:#151b27; border-bottom:1px solid rgba(255,255,255,.08); }
+    .pdf-modal-title { font-size:14px; font-weight:700; color:#fff; }
+    .pdf-modal-actions { display:flex; align-items:center; gap:8px; }
+    .pdf-action-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.07); color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; transition:.13s; }
+    .pdf-action-btn:hover { background:rgba(255,255,255,.14); }
+    .pdf-action-btn svg { width:14px; height:14px; }
+    .pdf-close { border-color:rgba(226,72,61,.4); color:#fca5a5; }
+    .pdf-close:hover { background:rgba(226,72,61,.15); }
+    .pdf-iframe { flex:1; border:none; width:100%; background:#fff; }
     .line-subtotal { font-size:13px; font-weight:600; color:#2563eb; white-space:nowrap; align-self:center; min-width:70px; text-align:right; }
     /* Form sections */
     .form-section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:14px; display:flex; flex-direction:column; gap:12px; }
@@ -309,6 +388,7 @@ export class OrdersComponent implements OnInit {
   deliveryUsers: any[] = [];
   allVariants: any[] = [];
   statusFilter = '';
+  periodFilter: 'today' | 'week' | 'month' | 'all' = 'all';
   cols = ['num', 'date_cmd', 'client', 'status', 'totaux', 'payment', 'driver', 'actions'];
   showForm = false;
   showDetail = false;
@@ -316,11 +396,17 @@ export class OrdersComponent implements OnInit {
   selectedOrder: any = null;
   saving = false;
   errorMsg = '';
+  editingOrderId: string | null = null;
   orderForm: any = { client_id: '', delivery_address: '', payment_status: 'unpaid', note: '' };
   orderLines: any[] = [];
   assignForm: any = { delivery_user_id: '' };
 
-  constructor(private api: ApiService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
+  // PDF Viewer
+  pdfLoading    = false;
+  pdfViewerUrl: SafeResourceUrl | null = null;
+  pdfViewerTitle = '';
+
+  constructor(private api: ApiService, public auth: AuthService, private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
     this.load();
@@ -336,19 +422,46 @@ export class OrdersComponent implements OnInit {
     });
   }
 
+  setPeriod(p: 'today' | 'week' | 'month' | 'all') { this.periodFilter = p; this.load(); }
+
   load() {
-    const qs = this.statusFilter ? `?status=${this.statusFilter}` : '';
+    const params: string[] = [];
+    if (this.statusFilter) params.push(`status=${this.statusFilter}`);
+    const now = new Date();
+    if (this.periodFilter === 'today') {
+      params.push(`date_from=${now.toISOString().slice(0,10)}`);
+      params.push(`date_to=${now.toISOString().slice(0,10)}`);
+    } else if (this.periodFilter === 'week') {
+      const mon = new Date(now); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7)); mon.setHours(0,0,0,0);
+      params.push(`date_from=${mon.toISOString().slice(0,10)}`);
+    } else if (this.periodFilter === 'month') {
+      params.push(`date_from=${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`);
+    }
+    const qs = params.length ? `?${params.join('&')}` : '';
     this.api.get<any[]>(`/orders${qs}`).subscribe(o => { this.orders = [...o]; this.cdr.detectChanges(); });
   }
 
-  get formHT()  { return parseFloat(this.orderLines.reduce((s, l) => s + (l.quantity || 0) * (l.unit_price || 0), 0).toFixed(2)); }
-  get formTVA() { return parseFloat(this.orderLines.reduce((s, l) => s + (l.quantity || 0) * (l.unit_price || 0) * ((l.tva_rate ?? 20) / 100), 0).toFixed(2)); }
-  get formTTC() { return parseFloat((this.formHT + this.formTVA).toFixed(2)); }
+  get formTTC() { return parseFloat(this.orderLines.reduce((s, l) => s + (l.quantity || 0) * (l.unit_price || 0), 0).toFixed(2)); }
+  get formTVA() { return parseFloat((this.formTTC - this.formTTC / 1.20).toFixed(2)); }
+  get formHT()  { return parseFloat((this.formTTC - this.formTVA).toFixed(2)); }
 
   openForm() {
+    this.editingOrderId = null;
     this.orderForm = { client_id: '', delivery_address: '', payment_status: 'unpaid', note: '' };
     this.orderLines = [{ variant_id: '', quantity: 1, unit_price: 0, tva_rate: 20 }];
     this.errorMsg = ''; this.showForm = true;
+  }
+
+  openEdit(o: any) {
+    this.editingOrderId = o.id;
+    this.orderForm = { client_id: o.client_id, delivery_address: o.delivery_address || '', payment_status: o.payment_status, note: o.note || '' };
+    this.orderLines = (o.lines || []).filter((l: any) => l?.variant_id).map((l: any) => ({
+      variant_id: l.variant_id, quantity: l.quantity, unit_price: l.unit_price, tva_rate: l.tva_rate ?? 20
+    }));
+    if (!this.orderLines.length) this.orderLines = [{ variant_id: '', quantity: 1, unit_price: 0, tva_rate: 20 }];
+    this.errorMsg = '';
+    this.showDetail = false;
+    this.showForm = true;
   }
   addLine() { this.orderLines.push({ variant_id: '', quantity: 1, unit_price: 0, tva_rate: 20 }); }
   removeLine(i: number) { this.orderLines.splice(i, 1); }
@@ -363,13 +476,56 @@ export class OrdersComponent implements OnInit {
     if (!this.orderForm.client_id) { this.errorMsg = 'Sélectionnez un client'; return; }
     if (!this.orderLines.length || !this.orderLines[0].variant_id) { this.errorMsg = 'Ajoutez au moins une ligne'; return; }
     setTimeout(() => { this.saving = true; this.cdr.detectChanges(); });
-    this.api.post('/orders', { ...this.orderForm, lines: this.orderLines }).subscribe({
-      next: () => { setTimeout(() => { this.saving = false; this.showForm = false; this.cdr.detectChanges(); this.load(); }); },
+    const payload = { ...this.orderForm, lines: this.orderLines };
+    const req$ = this.editingOrderId
+      ? this.api.put(`/orders/${this.editingOrderId}`, payload)
+      : this.api.post('/orders', payload);
+    req$.subscribe({
+      next: () => { setTimeout(() => { this.saving = false; this.showForm = false; this.editingOrderId = null; this.cdr.detectChanges(); this.load(); }); },
       error: (err) => { setTimeout(() => { this.saving = false; this.errorMsg = err.error?.message || 'Erreur'; this.cdr.detectChanges(); }); }
     });
   }
 
   openDetail(o: any) { this.selectedOrder = o; this.showDetail = true; }
+
+  viewPdf(type: 'bon-commande' | 'bon-livraison' | 'facture') {
+    if (!this.selectedOrder) return;
+    const id    = this.selectedOrder.id;
+    const token = localStorage.getItem('token');
+    const base  = environment.apiUrl.replace('/api', '');
+
+    const labels: Record<string, string> = {
+      'bon-commande':  'Bon de commande',
+      'bon-livraison': 'Bon de livraison',
+      'facture':       'Facture',
+    };
+    this.pdfViewerTitle = `${labels[type]} — #${this.selectedOrder.order_number || id.slice(0,8)}`;
+
+    if (type === 'bon-commande') {
+      // Toujours régénérer pour avoir logo/cachet à jour
+      this.pdfLoading = true;
+      this.cdr.detectChanges();
+      this.api.post<{ url: string }>(`/pdf/orders/${id}/generate`, {}).subscribe({
+        next: (r) => {
+          this.pdfLoading = false;
+          const url = `${base}${r.url}?t=${Date.now()}&token=${token}`;
+          this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+          this.cdr.detectChanges();
+        },
+        error: () => { this.pdfLoading = false; this.cdr.detectChanges(); },
+      });
+    } else {
+      // Bon de livraison / facture : généré à la volée
+      const url = `${base}/api/pdf/orders/${id}/${type}?token=${token}`;
+      this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+      this.cdr.detectChanges();
+    }
+  }
+
+  closePdfViewer() {
+    this.pdfViewerUrl = null;
+    this.cdr.detectChanges();
+  }
   openAssign(o: any) { this.selectedOrder = o; this.assignForm = { delivery_user_id: '' }; this.errorMsg = ''; this.showAssign = true; }
   doAssign() {
     if (!this.assignForm.delivery_user_id) { this.errorMsg = 'Sélectionnez un livreur'; return; }

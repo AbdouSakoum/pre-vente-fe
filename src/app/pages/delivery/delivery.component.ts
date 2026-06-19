@@ -1,8 +1,10 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 import { forkJoin } from 'rxjs';
 
 interface DeliveryOrder {
@@ -51,6 +53,12 @@ const COLS = [
       <span class="material-icons" style="font-size:16px;color:#9aa3af">calendar_today</span>
       {{ todayLabel }}
     </span>
+    <div class="period-tabs">
+      <button class="ptab" [class.ptab-active]="period === 'today'"   (click)="setPeriod('today')">Aujourd'hui</button>
+      <button class="ptab" [class.ptab-active]="period === 'week'"    (click)="setPeriod('week')">Cette semaine</button>
+      <button class="ptab" [class.ptab-active]="period === 'month'"   (click)="setPeriod('month')">Ce mois</button>
+      <button class="ptab" [class.ptab-active]="period === 'all'"     (click)="setPeriod('all')">Tous</button>
+    </div>
     <!-- Switcher livreur (admin seulement) -->
     <div class="driver-chip" *ngIf="auth.isAdmin && drivers().length">
       <div class="drv-av" [style.background]="'#2f6bff'">{{ initials(currentDriverName()) }}</div>
@@ -315,6 +323,10 @@ const COLS = [
           <span class="material-icons">check_circle</span>
           Livré à {{ o.delivered_at | date:'HH:mm' }}
         </div>
+        <button class="act act-pdf" *ngIf="o.status === 'delivered'" (click)="viewBonLivraison(o)" [disabled]="pdfLoadingId === o.id">
+          <span class="material-icons">picture_as_pdf</span>
+          {{ pdfLoadingId === o.id ? 'Génération…' : 'Bon de livraison' }}
+        </button>
       </ng-container>
     </div>
 
@@ -387,6 +399,26 @@ const COLS = [
   <span class="material-icons" style="color:#4ade80">check_circle</span>
   {{ toastMsg() }}
 </div>
+
+<!-- PDF Viewer -->
+<div class="pdf-ov" *ngIf="pdfViewerUrl" (click)="closePdfViewer()">
+  <div class="pdf-box" (click)="$event.stopPropagation()">
+    <div class="pdf-bar">
+      <span class="pdf-bar-title">{{ pdfViewerTitle }}</span>
+      <div class="pdf-bar-actions">
+        <a [href]="pdfViewerUrl" [download]="pdfViewerTitle" class="pdf-bar-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Télécharger
+        </a>
+        <button class="pdf-bar-btn pdf-bar-close" (click)="closePdfViewer()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Fermer
+        </button>
+      </div>
+    </div>
+    <iframe [src]="pdfViewerUrl" class="pdf-iframe"></iframe>
+  </div>
+</div>
   `,
   styles: [`
     /* ── Variables ───────────────────────────────────────── */
@@ -418,6 +450,11 @@ const COLS = [
     .drv-sub  { font-size:11.5px;color:var(--muted) }
     .drv-select { border:none;background:#f4f6fa;border-radius:8px;font-size:13px;font-weight:600;padding:6px 8px;color:var(--text);cursor:pointer }
     .drv-select:focus { outline:none }
+
+    .period-tabs { display:flex;gap:4px;background:#f0f2f6;border-radius:10px;padding:3px }
+    .ptab { padding:6px 13px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.13s;white-space:nowrap }
+    .ptab:hover { color:var(--text) }
+    .ptab-active { background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(16,24,40,.1) }
 
     /* ── KPIs ────────────────────────────────────────────── */
     .kpis { display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:22px }
@@ -563,6 +600,22 @@ const COLS = [
     .df { display:flex;gap:9px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0 }
     .done-banner { flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700;color:var(--green);padding:12px }
     .done-banner .material-icons { font-size:20px }
+    .act-pdf { flex:1;padding:10px;background:#f0f4ff;color:#2f6bff;border:1px solid #c7d8ff;font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.13s }
+    .act-pdf:hover:not(:disabled) { background:#e0ebff }
+    .act-pdf:disabled { opacity:.5;cursor:not-allowed }
+    .act-pdf .material-icons { font-size:17px }
+    /* PDF Viewer */
+    .pdf-ov { position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px }
+    .pdf-box { display:flex;flex-direction:column;width:100%;max-width:900px;height:90vh;background:#1e2533;border-radius:14px;overflow:hidden }
+    .pdf-bar { display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#151b27;border-bottom:1px solid rgba(255,255,255,.08) }
+    .pdf-bar-title { font-size:14px;font-weight:700;color:#fff }
+    .pdf-bar-actions { display:flex;gap:8px }
+    .pdf-bar-btn { display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#e2e8f0;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:.13s }
+    .pdf-bar-btn:hover { background:rgba(255,255,255,.14) }
+    .pdf-bar-btn svg { width:14px;height:14px }
+    .pdf-bar-close { border-color:rgba(226,72,61,.4);color:#fca5a5 }
+    .pdf-bar-close:hover { background:rgba(226,72,61,.15) }
+    .pdf-iframe { flex:1;border:none;width:100%;background:#fff }
 
     /* ── Modal COD ───────────────────────────────────────── */
     .ov { position:fixed;inset:0;background:rgba(16,24,40,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:90;padding:24px }
@@ -626,10 +679,15 @@ export class DeliveryComponent implements OnInit {
   toastMsg = signal('');
   private toastTimer: any;
 
+  pdfLoadingId: string | null = null;
+  pdfViewerUrl: SafeResourceUrl | null = null;
+  pdfViewerTitle = '';
+
+  period: 'today' | 'week' | 'month' | 'all' = 'today';
   readonly todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   private readonly COLORS = ['#3b82f6','#0d9488','#7c3aed','#d97706','#e2483d','#16a34a'];
 
-  constructor(private api: ApiService, public auth: AuthService) {}
+  constructor(private api: ApiService, public auth: AuthService, private sanitizer: DomSanitizer) {}
 
   ngOnInit() {
     if (this.auth.isAdmin) this.loadDrivers();
@@ -668,12 +726,37 @@ export class DeliveryComponent implements OnInit {
     this.loadOrders();
   }
 
+  setPeriod(p: 'today' | 'week' | 'month' | 'all') { this.period = p; }
+
   // ── Computed ─────────────────────────────────────────────
 
-  allOrders() { return this.orders(); }
+  private periodStart(): Date | null {
+    const now = new Date();
+    if (this.period === 'today') {
+      const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+    }
+    if (this.period === 'week') {
+      const d = new Date(now); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); d.setHours(0, 0, 0, 0); return d;
+    }
+    if (this.period === 'month') {
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    return null;
+  }
+
+  filteredOrders(): DeliveryOrder[] {
+    const start = this.periodStart();
+    if (!start) return this.orders();
+    return this.orders().filter(o => {
+      const ref = o.delivered_at || o.started_at || (o as any).created_at;
+      return ref ? new Date(ref) >= start : true;
+    });
+  }
+
+  allOrders() { return this.filteredOrders(); }
 
   byStatus(status: string): DeliveryOrder[] {
-    return this.orders().filter(o => o.status === status);
+    return this.filteredOrders().filter(o => o.status === status);
   }
 
   sumByStatus(status: string): number {
@@ -814,6 +897,17 @@ export class DeliveryComponent implements OnInit {
     const idx = (name || '').charCodeAt(0) % this.COLORS.length;
     return this.COLORS[idx];
   }
+
+  viewBonLivraison(o: DeliveryOrder) {
+    if (this.pdfLoadingId) return;
+    const token = localStorage.getItem('token') ?? '';
+    const apiBase = environment.apiUrl;
+    const url = `${apiBase}/pdf/orders/${o.id}/bon-livraison?token=${token}&t=${Date.now()}`;
+    this.pdfViewerTitle = `Bon de livraison - CMD-${o.order_number}`;
+    this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  closePdfViewer() { this.pdfViewerUrl = null; }
 
   private patchOrder(id: string, patch: Partial<DeliveryOrder>) {
     this.orders.update(list => list.map(o => o.id === id ? { ...o, ...patch } : o));

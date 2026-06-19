@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { ApiService } from '../../services/api.service';
+import { environment } from '../../../environments/environment';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -387,8 +389,39 @@ import { forkJoin } from 'rxjs';
         <div class="total-box" style="margin-top:16px">
           <span>Total arrivage</span><strong>{{ fmtDH(totalValArrivage(selectedArrivage)) }}</strong>
         </div>
+        <!-- Bon de réception -->
+        <div class="pdf-actions" style="margin-top:18px;padding-top:14px;border-top:1px solid #f1f5f9">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:10px">Documents</div>
+          <button class="pdf-btn-stock" (click)="viewBonReception()" [disabled]="brLoading">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Bon de réception
+          </button>
+          <div *ngIf="brLoading" style="margin-top:8px;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:6px">
+            <span class="br-spinner"></span> Génération…
+          </div>
+        </div>
       </div>
     </app-drawer>
+
+    <!-- PDF VIEWER MODAL -->
+    <div class="pdf-overlay-stock" *ngIf="pdfViewerUrl" (click)="closePdfViewer()">
+      <div class="pdf-modal-stock" (click)="$event.stopPropagation()">
+        <div class="pdf-modal-bar">
+          <span style="font-size:14px;font-weight:700;color:#fff">{{ pdfViewerTitle }}</span>
+          <div style="display:flex;gap:8px">
+            <a [href]="pdfViewerUrl" [download]="pdfViewerTitle" class="pdf-action-btn-stock">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Télécharger
+            </a>
+            <button class="pdf-action-btn-stock pdf-close-stock" (click)="closePdfViewer()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Fermer
+            </button>
+          </div>
+        </div>
+        <iframe [src]="pdfViewerUrl" style="flex:1;border:none;width:100%;background:#fff"></iframe>
+      </div>
+    </div>
 
     <!-- ===== DRAWER NOUVELLE CHARGE ===== -->
     <app-drawer [open]="showChargeDrawer" title="Nouvelle charge livreur"
@@ -640,6 +673,20 @@ import { forkJoin } from 'rxjs';
     .detail-table td { padding:10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
     .detail-table tr:last-child td { border-bottom:none; }
     .drawer-meta { font-size:13px; color:#94a3b8; margin-bottom:14px; }
+    .pdf-btn-stock { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:#2f6bff; border-color:#2f6bff; cursor:pointer; transition:.13s; }
+    .pdf-btn-stock:hover:not(:disabled) { background:#f0f4ff; }
+    .pdf-btn-stock:disabled { opacity:.5; cursor:not-allowed; }
+    .pdf-btn-stock svg { width:15px; height:15px; }
+    .br-spinner { display:inline-block; width:12px; height:12px; border:2px solid #e2e8f0; border-top-color:#2f6bff; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .pdf-overlay-stock { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .pdf-modal-stock { display:flex; flex-direction:column; width:100%; max-width:900px; height:90vh; background:#1e2533; border-radius:14px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.5); }
+    .pdf-modal-bar { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:#151b27; border-bottom:1px solid rgba(255,255,255,.08); }
+    .pdf-action-btn-stock { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.07); color:#e2e8f0; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; transition:.13s; }
+    .pdf-action-btn-stock:hover { background:rgba(255,255,255,.14); }
+    .pdf-action-btn-stock svg { width:14px; height:14px; }
+    .pdf-close-stock { border-color:rgba(226,72,61,.4); color:#fca5a5; }
+    .pdf-close-stock:hover { background:rgba(226,72,61,.15); }
     .drawer-hint { font-size:13px; color:#64748b; margin-bottom:12px; }
     .error-banner { display:flex; align-items:center; gap:8px; padding:10px 14px; background:#fee2e2; color:#dc2626; border-radius:8px; font-size:13px; }
     .error-banner .material-icons { font-size:18px; }
@@ -680,6 +727,9 @@ export class StockComponent implements OnInit {
   arrivalForm: any = {};
   arrivalLines: any[] = [];
   selectedArrivage: any = null;
+  brLoading = false;
+  pdfViewerUrl: SafeResourceUrl | null = null;
+  pdfViewerTitle = '';
 
   // Charge form
   chargeForm: any = {};
@@ -702,7 +752,7 @@ export class StockComponent implements OnInit {
   editingFournisseur: any = null;
   fournisseurForm = { nom: '', telephone: '' };
 
-  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {}
 
   ngOnInit() { this.loadAll(); }
 
@@ -785,7 +835,37 @@ export class StockComponent implements OnInit {
   arrivalTotal() { return this.arrivalLines.reduce((s, l) => s + (Number(l.quantite) || 0) * (Number(l.prix_unitaire) || 0), 0); }
   totalQtyArrivage(a: any) { return (a.lines || []).reduce((s: number, l: any) => s + l.quantite, 0); }
   totalValArrivage(a: any) { return (a.lines || []).reduce((s: number, l: any) => s + l.quantite * l.prix_unitaire, 0); }
-  openArrivageDetail(a: any) { this.selectedArrivage = a; this.showArrivageDetail = true; }
+  openArrivageDetail(a: any) { this.selectedArrivage = a; this.showArrivageDetail = true; this.pdfViewerUrl = null; }
+
+  viewBonReception() {
+    if (!this.selectedArrivage) return;
+    const id    = this.selectedArrivage.id;
+    const token = localStorage.getItem('token');
+    const base  = environment.apiUrl.replace('/api', '');
+    this.pdfViewerTitle = `Bon de reception - ${this.selectedArrivage.bl || id.slice(0, 8)}`;
+
+    const stored = this.selectedArrivage.bon_reception_url;
+    if (stored) {
+      this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${base}${stored}?t=${Date.now()}&token=${token}`);
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Pas encore genere → appel backend pour generer
+    this.brLoading = true;
+    this.cdr.detectChanges();
+    this.api.post<{ url: string }>(`/pdf/stock/arrivages/${id}/generate`, {}).subscribe({
+      next: (r) => {
+        this.brLoading = false;
+        this.selectedArrivage.bon_reception_url = r.url;
+        this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`${base}${r.url}?t=${Date.now()}&token=${token}`);
+        this.cdr.detectChanges();
+      },
+      error: () => { this.brLoading = false; this.cdr.detectChanges(); },
+    });
+  }
+
+  closePdfViewer() { this.pdfViewerUrl = null; this.cdr.detectChanges(); }
 
   saveArrival() {
     const valid = this.arrivalLines.filter(l => l.variant_id && Number(l.quantite) > 0);

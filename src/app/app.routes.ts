@@ -19,6 +19,7 @@ export const routes: Routes = [
       { path: 'stock', canActivate: [roleGuard('admin', 'stock_manager')], loadComponent: () => import('./pages/stock/stock.component').then(m => m.StockComponent) },
       { path: 'delivery', canActivate: [roleGuard('admin', 'delivery')], loadComponent: () => import('./pages/delivery/delivery.component').then(m => m.DeliveryComponent) },
       { path: 'visits', canActivate: [roleGuard('admin', 'pre_seller')], loadComponent: () => import('./pages/visits/visits.component').then(m => m.VisitsComponent) },
+      { path: 'print-settings', canActivate: [roleGuard('admin')], loadComponent: () => import('./pages/print-settings/print-settings.component').then(m => m.PrintSettingsComponent) },
     ]
   },
   { path: '**', redirectTo: '' }

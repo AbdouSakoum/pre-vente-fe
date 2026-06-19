@@ -1,8 +1,10 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 const CLOSE_REASONS = [
   { id: 'm1', label: 'Client absent' },
@@ -47,6 +49,12 @@ type ClientFilter = 'near' | 'all';
             <span class="snum">2</span> Commande
           </div>
         </div>
+        <div class="period-tabs" *ngIf="view === 'list'">
+          <button class="ptab" [class.ptab-active]="period === 'today'"  (click)="setPeriod('today')">Aujourd'hui</button>
+          <button class="ptab" [class.ptab-active]="period === 'week'"   (click)="setPeriod('week')">Cette semaine</button>
+          <button class="ptab" [class.ptab-active]="period === 'month'"  (click)="setPeriod('month')">Ce mois</button>
+          <button class="ptab" [class.ptab-active]="period === 'all'"    (click)="setPeriod('all')">Tous</button>
+        </div>
         <button class="btn btn-primary" *ngIf="view === 'list'" (click)="startVisit()">
           <span class="material-icons">add_location_alt</span> Nouvelle visite
         </button>
@@ -71,7 +79,7 @@ type ClientFilter = 'near' | 'all';
       </div>
       <div class="card">
         <div class="list-head">
-          <h3>Tournée du jour</h3>
+          <h3>{{ periodLabel }}</h3>
           <span class="cnt">{{ visits.length }} visite(s)</span>
         </div>
         <div *ngFor="let v of visits" class="visit-row">
@@ -83,7 +91,12 @@ type ClientFilter = 'near' | 'all';
           <div class="v-right">
             <span class="pill pill-ok" *ngIf="v.status==='ordered'">Commande créée</span>
             <span class="pill pill-warn" *ngIf="v.status==='closed'">Sans achat</span>
-            <span class="pill pill-info" *ngIf="v.status==='in_progress'">En cours</span>
+            <ng-container *ngIf="v.status==='in_progress'">
+              <span class="pill pill-info">En cours</span>
+              <button class="btn-resume" (click)="resumeVisit(v)">
+                <span class="material-icons">play_arrow</span> Reprendre
+              </button>
+            </ng-container>
             <div class="v-motif" *ngIf="v.close_reason">{{ v.close_reason }}</div>
           </div>
         </div>
@@ -382,9 +395,9 @@ type ClientFilter = 'near' | 'all';
               </div>
             </div>
             <div class="cart-foot" *ngIf="cart.length">
-              <div class="tot-row"><span>Sous-total HT</span><span>{{ subTotal | number:'1.2-2' }} DH</span></div>
-              <div class="tot-row"><span>TVA (20%)</span><span>{{ subTotal * 0.2 | number:'1.2-2' }} DH</span></div>
-              <div class="tot-row grand"><span>Total TTC</span><span>{{ subTotal * 1.2 | number:'1.2-2' }} DH</span></div>
+              <div class="tot-row"><span>Sous-total HT</span><span>{{ subTotal / 1.2 | number:'1.2-2' }} DH</span></div>
+              <div class="tot-row"><span>TVA (20%)</span><span>{{ subTotal - subTotal / 1.2 | number:'1.2-2' }} DH</span></div>
+              <div class="tot-row grand"><span>Total TTC</span><span>{{ subTotal | number:'1.2-2' }} DH</span></div>
             </div>
           </div>
         </div>
@@ -417,14 +430,37 @@ type ClientFilter = 'near' | 'all';
           <div class="recap-row" *ngIf="createdOrder?.order_number"><span>N° commande</span><b>#{{ createdOrder.order_number }}</b></div>
           <div class="recap-row"><span>Client</span><b>{{ selectedClient?.name }}</b></div>
           <div class="recap-row"><span>Articles</span><b>{{ cartQty }} unité(s) · {{ cart.length }} réf.</b></div>
-          <div class="recap-row"><span>HT</span><b>{{ createdOrder?.total_ht ?? subTotal | number:'1.2-2' }} DH</b></div>
-          <div class="recap-row"><span>TVA 20%</span><b>{{ createdOrder?.total_tva ?? (subTotal * 0.2) | number:'1.2-2' }} DH</b></div>
-          <div class="recap-row tot"><span>Total TTC</span><b>{{ createdOrder?.total_ttc ?? (subTotal * 1.2) | number:'1.2-2' }} DH</b></div>
+          <div class="recap-row"><span>HT</span><b>{{ createdOrder?.total_ht ?? (subTotal / 1.2) | number:'1.2-2' }} DH</b></div>
+          <div class="recap-row"><span>TVA 20%</span><b>{{ createdOrder?.total_tva ?? (subTotal - subTotal / 1.2) | number:'1.2-2' }} DH</b></div>
+          <div class="recap-row tot"><span>Total TTC</span><b>{{ createdOrder?.total_ttc ?? subTotal | number:'1.2-2' }} DH</b></div>
         </div>
         <div class="confirm-actions">
           <button class="btn btn-ghost btn-lg" (click)="backToList()"><span class="material-icons">arrow_back</span> Retour aux visites</button>
+          <button class="btn btn-pdf btn-lg" (click)="viewBonCommande()" *ngIf="createdOrder?.id">
+            <span class="material-icons">picture_as_pdf</span> Bon de commande
+          </button>
           <button class="btn btn-primary btn-lg" (click)="startVisit()"><span class="material-icons">add_location_alt</span> Nouvelle visite</button>
         </div>
+      </div>
+    </div>
+
+    <!-- PDF Viewer -->
+    <div class="pdf-ov" *ngIf="pdfViewerUrl" (click)="closePdfViewer()">
+      <div class="pdf-box" (click)="$event.stopPropagation()">
+        <div class="pdf-bar">
+          <span class="pdf-bar-title">{{ pdfViewerTitle }}</span>
+          <div class="pdf-bar-actions">
+            <a [href]="pdfViewerUrl" [download]="pdfViewerTitle" class="pdf-bar-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Télécharger
+            </a>
+            <button class="pdf-bar-btn pdf-bar-close" (click)="closePdfViewer()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Fermer
+            </button>
+          </div>
+        </div>
+        <iframe [src]="pdfViewerUrl" class="pdf-iframe"></iframe>
       </div>
     </div>
 
@@ -552,6 +588,10 @@ type ClientFilter = 'near' | 'all';
     .page-title { font-size:26px; font-weight:700; }
     .page-sub { font-size:14px; color:#6b7280; margin-top:3px; }
     .ph-right { display:flex; align-items:center; gap:14px; }
+    .period-tabs { display:flex;gap:4px;background:#f0f2f6;border-radius:10px;padding:3px }
+    .ptab { padding:6px 13px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:600;color:#6b7280;cursor:pointer;transition:.13s;white-space:nowrap }
+    .ptab:hover { color:#1f2a37 }
+    .ptab-active { background:#fff;color:#3b82f6;box-shadow:0 1px 3px rgba(16,24,40,.1) }
 
     /* ===== STEPPER ===== */
     .stepper { display:flex; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:6px; }
@@ -582,7 +622,9 @@ type ClientFilter = 'near' | 'all';
     .v-main { flex:1; }
     .vn { font-weight:600; font-size:15px; }
     .vm { font-size:12px; color:#94a3b8; margin-top:2px; }
-    .v-right { text-align:right; }
+    .v-right { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+    .btn-resume { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:8px; border:none; background:#2f6bff; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-resume .material-icons { font-size:16px; }
     .v-motif { font-size:12px; color:#94a3b8; margin-top:4px; }
     .pill { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; display:inline-block; }
     .pill-ok { background:#dcfce7; color:#15803d; }
@@ -823,8 +865,23 @@ type ClientFilter = 'near' | 'all';
     .btn-ghost { background:#fff; color:#1f2a37; border:1px solid #e2e8f0; }
     .btn-ghost:hover { background:#f7f9fc; border-color:#d6dce5; }
     .btn-ghost:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-pdf { background:#f0f4ff; color:#2f6bff; border:1px solid #c7d8ff; }
+    .btn-pdf:hover { background:#e0ebff; }
+    .btn-pdf .material-icons { font-size:17px; }
     .btn-danger { background:#fff; color:#ef4444; border:1px solid #f3c9c9; }
     .btn-danger:hover { background:#fde8e8; }
+    /* PDF Viewer */
+    .pdf-ov { position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px }
+    .pdf-box { display:flex;flex-direction:column;width:100%;max-width:900px;height:90vh;background:#1e2533;border-radius:14px;overflow:hidden }
+    .pdf-bar { display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#151b27;border-bottom:1px solid rgba(255,255,255,.08) }
+    .pdf-bar-title { font-size:14px;font-weight:700;color:#fff }
+    .pdf-bar-actions { display:flex;gap:8px }
+    .pdf-bar-btn { display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:#e2e8f0;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:.13s }
+    .pdf-bar-btn:hover { background:rgba(255,255,255,.14) }
+    .pdf-bar-btn svg { width:14px;height:14px }
+    .pdf-bar-close { border-color:rgba(226,72,61,.4);color:#fca5a5 }
+    .pdf-bar-close:hover { background:rgba(226,72,61,.15) }
+    .pdf-iframe { flex:1;border:none;width:100%;background:#fff }
     .btn-lg { padding:14px 26px; font-size:15px; }
 
     /* ===== MISC ===== */
@@ -870,6 +927,7 @@ export class VisitsComponent implements OnInit {
 
   // Données
   visits: any[] = [];
+  period: 'today' | 'week' | 'month' | 'all' = 'today';
   clients: any[] = [];
   filteredClients: any[] = [];
   nearbyClients: any[] = [];
@@ -916,7 +974,20 @@ export class VisitsComponent implements OnInit {
   showDetailModal = false;
   detailVisit: any = null;
 
-  constructor(private api: ApiService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
+  pdfViewerUrl: SafeResourceUrl | null = null;
+  pdfViewerTitle = '';
+
+  constructor(private api: ApiService, public auth: AuthService, private cdr: ChangeDetectorRef, private sanitizer: DomSanitizer) {}
+
+  viewBonCommande() {
+    if (!this.createdOrder?.id) return;
+    const token = localStorage.getItem('token') ?? '';
+    const url = `${environment.apiUrl}/pdf/orders/${this.createdOrder.id}/bon-commande?token=${token}&t=${Date.now()}`;
+    this.pdfViewerTitle = `Bon de commande - CMD-${this.createdOrder.order_number}`;
+    this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+  }
+
+  closePdfViewer() { this.pdfViewerUrl = null; }
 
   ngOnInit() { this.loadVisits(); }
 
@@ -936,10 +1007,28 @@ export class VisitsComponent implements OnInit {
     return m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`;
   }
 
+  get periodLabel(): string {
+    return { today: 'Tournée du jour', week: 'Cette semaine', month: 'Ce mois', all: 'Toutes les visites' }[this.period];
+  }
+
+  setPeriod(p: 'today' | 'week' | 'month' | 'all') {
+    this.period = p;
+    this.loadVisits();
+  }
+
   // ——— Chargement ———
   loadVisits() {
-    const today = new Date().toISOString().slice(0,10);
-    this.api.get<any[]>(`/visits/my?date=${today}`).subscribe(v => { this.visits = v; this.cdr.detectChanges(); });
+    let qs = '';
+    const now = new Date();
+    if (this.period === 'today') {
+      qs = `?date=${now.toISOString().slice(0, 10)}`;
+    } else if (this.period === 'week') {
+      const mon = new Date(now); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7)); mon.setHours(0,0,0,0);
+      qs = `?date_from=${mon.toISOString().slice(0,10)}`;
+    } else if (this.period === 'month') {
+      qs = `?date_from=${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    }
+    this.api.get<any[]>(`/visits/my${qs}`).subscribe(v => { this.visits = v; this.cdr.detectChanges(); });
   }
 
   loadClients() {
@@ -1118,6 +1207,27 @@ export class VisitsComponent implements OnInit {
     this.geolocate();
   }
 
+  resumeVisit(v: any) {
+    this.cart = [];
+    this.productSearch = '';
+    this.createdOrder = null;
+    this.showCloseDrawer = false;
+    this.selectedMotif = '';
+    this.closeNote = '';
+    this.saving = false;
+    this.currentVisitId = v.id;
+    this.selectedClient = {
+      id: v.client_id,
+      name: v.client_name,
+      phone: v.client_phone,
+      city: v.client_city,
+      address: v.client_address ?? ''
+    };
+    this.loadProducts();
+    this.view = 'step2';
+    this.cdr.detectChanges();
+  }
+
   goStep2() {
     if (!this.selectedClient) return;
     this.saving = true;
@@ -1151,7 +1261,7 @@ export class VisitsComponent implements OnInit {
       next: (order:any) => {
         this.createdOrder = order;
         this.api.patch(`/visits/${this.currentVisitId}/close`, { status:'ordered', order_id:order.id }).subscribe({
-          next: () => { this.saving = false; this.loadVisits(); this.view = 'done_order'; this.cdr.detectChanges(); },
+          next: () => { this.saving = false; this.loadVisits(); setTimeout(() => { this.view = 'done_order'; this.cdr.detectChanges(); }, 0); },
           error: () => { this.saving = false; this.cdr.detectChanges(); }
         });
       },
@@ -1170,8 +1280,10 @@ export class VisitsComponent implements OnInit {
     this.api.patch(`/visits/${this.currentVisitId}/close`, { status:'closed', close_reason: reason }).subscribe({
       next: () => {
         this.closeReasonFinal = reason;
-        this.saving = false; this.showCloseDrawer = false;
-        this.loadVisits(); this.view = 'done_closed'; this.cdr.detectChanges();
+        this.saving = false;
+        this.showCloseDrawer = false;
+        this.loadVisits();
+        setTimeout(() => { this.view = 'done_closed'; this.cdr.detectChanges(); }, 0);
       },
       error: () => { this.saving = false; this.cdr.detectChanges(); }
     });
