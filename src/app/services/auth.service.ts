@@ -17,11 +17,16 @@ export class AuthService {
 
   private getTenant(): string {
     const hostname = window.location.hostname;
-    if (hostname === 'localhost') return 'demo';
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return 'demo';
+    if (hostname === 'localhost' || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+      return localStorage.getItem('tenant') || 'demo';
+    }
     const parts = hostname.split('.');
-    if (parts.length < 2) return 'demo';
-    return parts[0];
+    if (parts.length < 3) return localStorage.getItem('tenant') || 'demo';
+    const sub = parts[0];
+    if (['app', 'www', 'api'].includes(sub)) {
+      return localStorage.getItem('tenant') || 'demo';
+    }
+    return sub;
   }
 
   login(email: string, password: string) {

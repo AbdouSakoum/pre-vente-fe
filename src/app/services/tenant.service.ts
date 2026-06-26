@@ -16,14 +16,16 @@ export class TenantService {
 
   constructor(private http: HttpClient) {}
 
-  getSubdomain(): string {
+  getSubdomain(): string | null {
     const hostname = window.location.hostname;
-    if (hostname === 'localhost') return 'demo';
-    // IP address — pas de sous-domaine
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return 'demo';
+    if (hostname === 'localhost') return null;
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return null;
     const parts = hostname.split('.');
-    if (parts.length < 2) return 'demo';
-    return parts[0];
+    if (parts.length < 3) return null;
+    const sub = parts[0];
+    // Sous-domaines réservés — pas des tenants
+    if (['app', 'api', 'www'].includes(sub)) return null;
+    return sub;
   }
 
   getInfo(subdomain: string): Observable<TenantInfo> {

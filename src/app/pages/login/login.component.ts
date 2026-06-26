@@ -19,15 +19,15 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       <mat-spinner diameter="40"></mat-spinner>
     </div>
 
-    <!-- Tenant introuvable -->
-    <div *ngIf="!checking && !tenant" class="notfound-container">
+    <!-- Tenant introuvable (sous-domaine URL invalide) -->
+    <div *ngIf="!checking && step === 'not-found'" class="notfound-container">
       <span class="material-icons notfound-icon">domain_disabled</span>
       <h1>Entreprise introuvable</h1>
       <p>Le sous-domaine <strong>{{ subdomain }}</strong> ne correspond à aucune entreprise.</p>
     </div>
 
     <!-- Login (split layout) -->
-    <div *ngIf="!checking && tenant" class="layout">
+    <div *ngIf="!checking && (step === 'login' || step === 'pick-tenant')" class="layout">
 
       <!-- LEFT PANEL -->
       <aside class="left">
@@ -72,7 +72,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           </div>
         </div>
 
-        <div class="left-foot">© 2026 KeepOn · {{ tenant.name }}</div>
+        <div class="left-foot">© 2026 KeepOn{{ tenant ? ' · ' + tenant.name : '' }}</div>
       </aside>
 
       <!-- RIGHT PANEL -->
@@ -83,10 +83,33 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <img src="assets/logo.svg" alt="KeepOn" class="fh-logo-img" />
             </div>
             <h2>Connexion</h2>
-            <p>Bienvenue sur KeepOn · <b>{{ tenant.name }}</b></p>
+            <p>{{ tenant ? 'Bienvenue sur KeepOn · ' + tenant.name : 'Accédez à votre espace de travail' }}</p>
           </div>
 
           <form (ngSubmit)="onLogin()" autocomplete="off">
+
+            <!-- Champ entreprise : visible uniquement si pas de sous-domaine -->
+            <div class="field" *ngIf="step === 'pick-tenant'">
+              <label for="tenant-input">Nom d'entreprise</label>
+              <div class="field-wrap">
+                <span class="fi">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                  </svg>
+                </span>
+                <input type="text" id="tenant-input" name="tenantInput" [(ngModel)]="tenantInput"
+                  placeholder="ex : monentreprise" autocomplete="off" (blur)="onTenantInputBlur()" />
+                <button type="button" class="field-eye" *ngIf="checkingTenant">
+                  <mat-spinner diameter="16"></mat-spinner>
+                </button>
+                <span *ngIf="tenant" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);color:#16a34a;display:flex">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M20 6 9 17l-5-5"/></svg>
+                </span>
+              </div>
+              <div class="tenant-found" *ngIf="tenant">{{ tenant.name }}</div>
+              <div *ngIf="tenantError" class="tenant-error">{{ tenantError }}</div>
+            </div>
+
             <div class="field">
               <label for="email">Email</label>
               <div class="field-wrap">
@@ -128,7 +151,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               {{ error }}
             </div>
 
-            <button type="submit" class="btn-submit" [disabled]="loading">
+            <button type="submit" class="btn-submit" [disabled]="loading || (step === 'pick-tenant' && !tenant)">
               <mat-spinner *ngIf="loading" diameter="18"></mat-spinner>
               <ng-container *ngIf="!loading">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,7 +164,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
           <div class="form-foot">
             <div class="status-dot"></div>
-            <div class="form-foot-txt">Environnement sécurisé · <b>{{ tenant.name }}</b> · Session chiffrée TLS</div>
+            <div class="form-foot-txt">Environnement sécurisé{{ tenant ? ' · ' + tenant.name : '' }} · Session chiffrée TLS</div>
           </div>
         </div>
       </main>
@@ -156,6 +179,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     .notfound-icon { font-size:64px; color:#cbd5e1; }
     .notfound-container h1 { margin:0; font-size:22px; color:#1e293b; }
     .notfound-container p { margin:0; font-size:15px; }
+    .tenant-found { font-size:12.5px; font-weight:700; color:#16a34a; margin-top:5px; display:flex; align-items:center; gap:4px; }
+    .tenant-error { font-size:12.5px; color:#dc2626; margin-top:5px; }
 
     /* LAYOUT */
     .layout { display:flex; width:100%; min-height:100vh; }
@@ -245,6 +270,10 @@ export class LoginComponent implements OnInit {
   tenant: TenantInfo | null = null;
   subdomain = '';
   showPwd = false;
+  step: 'pick-tenant' | 'login' | 'not-found' = 'login';
+  tenantInput = '';
+  tenantError = '';
+  checkingTenant = false;
 
   constructor(
     private auth: AuthService,
@@ -254,14 +283,60 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.subdomain = this.tenantService.getSubdomain();
-    this.tenantService.getInfo(this.subdomain).subscribe({
-      next: (info) => { this.tenant = info; this.checking = false; this.cdr.detectChanges(); },
-      error: () => { this.tenant = null; this.checking = false; this.cdr.detectChanges(); }
+    const sub = this.tenantService.getSubdomain();
+    if (sub === null) {
+      // localhost ou IP : demander le tenant à l'utilisateur
+      this.checking = false;
+      this.step = 'pick-tenant';
+      this.cdr.detectChanges();
+    } else {
+      this.subdomain = sub;
+      this.tenantService.getInfo(sub).subscribe({
+        next: (info) => { this.tenant = info; this.checking = false; this.step = 'login'; this.cdr.detectChanges(); },
+        error: () => { this.tenant = null; this.checking = false; this.step = 'not-found'; this.cdr.detectChanges(); }
+      });
+    }
+  }
+
+  onTenantInputBlur() {
+    const slug = this.tenantInput.trim().toLowerCase();
+    if (!slug || this.tenant?.subdomain === slug) return;
+    this.resolveTenant(slug);
+  }
+
+  private resolveTenant(slug: string): Promise<boolean> {
+    return new Promise(resolve => {
+      this.checkingTenant = true;
+      this.tenantError = '';
+      this.tenant = null;
+      this.cdr.detectChanges();
+      this.tenantService.getInfo(slug).subscribe({
+        next: (info) => {
+          localStorage.setItem('tenant', slug);
+          this.tenant = info;
+          this.subdomain = slug;
+          this.checkingTenant = false;
+          this.cdr.detectChanges();
+          resolve(true);
+        },
+        error: () => {
+          this.checkingTenant = false;
+          this.tenantError = `Aucune entreprise trouvée pour "${slug}"`;
+          this.cdr.detectChanges();
+          resolve(false);
+        }
+      });
     });
   }
 
-  onLogin() {
+  // Gardé pour compatibilité template mais plus utilisé comme submit
+  onPickTenant() {}
+
+  async onLogin() {
+    if (this.step === 'pick-tenant' && !this.tenant) {
+      const ok = await this.resolveTenant(this.tenantInput.trim().toLowerCase());
+      if (!ok) return;
+    }
     this.loading = true;
     this.error = '';
     this.auth.login(this.email, this.password).subscribe({

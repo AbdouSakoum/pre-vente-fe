@@ -9,11 +9,10 @@ export class ApiService {
 
   private getTenant(): string {
     const hostname = window.location.hostname;
-    if (hostname === 'localhost') return 'demo';
-    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return 'demo';
-    const parts = hostname.split('.');
-    if (parts.length < 2) return 'demo';
-    return parts[0];
+    if (hostname === 'localhost' || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.split('.').length < 2) {
+      return localStorage.getItem('tenant') || 'demo';
+    }
+    return hostname.split('.')[0];
   }
 
   constructor(private http: HttpClient) {}
