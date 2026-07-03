@@ -6,5 +6,4 @@ export const environment = {
   appVersion: 'dev',
   enableDevTools: true,
   // Clé superadmin — à ne jamais commiter en prod ; remplacer dans environment.prod.ts
-  superadminSecret: 'superadmin_dev_key',
 };

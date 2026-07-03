@@ -5,7 +5,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 const BASE = `${environment.apiUrl}/superadmin`;
-const SECRET = environment.superadminSecret;
 
 @Component({
   selector: 'app-superadmin',
@@ -313,24 +312,28 @@ export class SuperadminComponent implements OnInit {
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
+  private token = '';
+
   ngOnInit() {
-    const saved = sessionStorage.getItem('sa_auth');
-    if (saved === SECRET) { this.authenticated = true; this.load(); }
+    const saved = sessionStorage.getItem('sa_token');
+    if (saved) { this.token = saved; this.authenticated = true; this.load(); }
   }
 
   authenticate() {
-    if (this.inputSecret === SECRET) {
-      sessionStorage.setItem('sa_auth', this.inputSecret);
-      this.authenticated = true;
-      this.authError = '';
-      this.load();
-    } else {
-      this.authError = 'Clé incorrecte';
-    }
+    this.authError = '';
+    this.http.post<any>(`${environment.apiUrl}/superadmin/auth`, { token: this.inputSecret }).subscribe({
+      next: () => {
+        this.token = this.inputSecret;
+        sessionStorage.setItem('sa_token', this.token);
+        this.authenticated = true;
+        this.load();
+      },
+      error: () => { this.authError = 'Clé incorrecte'; }
+    });
   }
 
   private headers() {
-    return new HttpHeaders({ 'x-superadmin-token': SECRET });
+    return new HttpHeaders({ 'x-superadmin-token': this.token });
   }
 
   load() {

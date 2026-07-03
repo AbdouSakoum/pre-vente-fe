@@ -766,11 +766,14 @@ export class DeliveryComponent implements OnInit {
   totalDue(): number {
     return this.orders()
       .filter(o => o.status !== 'delivered' || o.payment_status !== 'paid')
-      .reduce((s, o) => s + this.getDue(o), 0);
+      .reduce((s, o) => s + (+(this.getDue(o)) || 0), 0);
   }
 
   totalPaid(): number {
-    return this.orders().reduce((s, o) => s + (o.paid_amount ?? 0), 0);
+    const today = new Date().toDateString();
+    return this.orders()
+      .filter(o => o.status === 'delivered' && o.delivered_at && new Date(o.delivered_at).toDateString() === today)
+      .reduce((s, o) => s + (+(o.paid_amount) || 0), 0);
   }
 
   currentDriverName(): string {
@@ -825,11 +828,11 @@ export class DeliveryComponent implements OnInit {
   // ── Helpers ──────────────────────────────────────────────
 
   getTotal(o: DeliveryOrder): number {
-    return o.total_ttc || o.lines?.reduce((s, l) => s + l.quantity * l.unit_price, 0) || 0;
+    return +(o.total_ttc) || o.lines?.reduce((s, l) => s + (+l.quantity) * (+l.unit_price), 0) || 0;
   }
 
   getDue(o: DeliveryOrder): number {
-    return Math.max(0, this.getTotal(o) - (o.paid_amount ?? 0));
+    return Math.max(0, this.getTotal(o) - (+(o.paid_amount) || 0));
   }
 
   getTotalQty(o: DeliveryOrder): number {
@@ -848,7 +851,7 @@ export class DeliveryComponent implements OnInit {
     return notes.slice(0, 4);
   }
 
-  fmtDH(n: number): string { return Math.round(n).toLocaleString('fr-FR') + ' DH'; }
+  fmtDH(n: number): string { return Number(n ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DH'; }
 
   payLabel(o: DeliveryOrder): string {
     if (o.payment_status === 'paid') return 'Payé';

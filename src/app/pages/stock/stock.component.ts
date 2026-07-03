@@ -997,7 +997,7 @@ export class StockComponent implements OnInit {
   movClass(t: string) { return { arrival: 'badge badge-green', charge: 'badge badge-purple', return_from_charge: 'badge badge-teal', adjustment: 'badge badge-amber', delivery_out: 'badge badge-blue' }[t] || 'badge badge-grey'; }
 
   // ===== UTILS =====
-  fmt(n: number) { return Number(n || 0).toLocaleString('fr-FR'); }
-  fmtDH(n: number) { return this.fmt(Math.round(n || 0)) + ' DH'; }
+  fmt(n: number) { return Number(n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  fmtDH(n: number) { return this.fmt(n || 0) + ' DH'; }
   fmtDate(d: string) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }); }
 }

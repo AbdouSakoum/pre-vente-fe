@@ -6,5 +6,4 @@ export const environment = {
   appVersion: '1.0.0',
   enableDevTools: false,
   // IMPORTANT : remplacer cette valeur par la vraie clé avant le build de production
-  superadminSecret: 'superadmin_master_key_change_in_prod',
 };

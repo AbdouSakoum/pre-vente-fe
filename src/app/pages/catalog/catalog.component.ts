@@ -123,7 +123,7 @@ interface CartLine {
           <div class="order-variants">
             <div *ngFor="let v of p.variants"
               class="order-variant-row"
-              [class.out-of-stock]="v.stock_warehouse === 0">
+              [class.out-of-stock]="v.stock_available === 0">
 
               <div class="ov-img-wrap">
                 <img *ngIf="v.image_url" [src]="v.image_url" class="variant-img" />
@@ -135,17 +135,17 @@ interface CartLine {
                 <span class="variant-price">{{ v.price | number:'1.2-2' }} DH</span>
                 <div class="stock-badges">
                   <span class="stock-badge warehouse" title="Entrepôt">
-                    <span class="material-icons">warehouse</span> {{ v.stock_warehouse }}
+                    <span class="material-icons">warehouse</span> {{ v.stock_available ?? v.stock_warehouse }}
                   </span>
                 </div>
               </div>
 
-              <div class="ov-qty" *ngIf="v.stock_warehouse > 0">
+              <div class="ov-qty" *ngIf="v.stock_available > 0">
                 <button class="qty-btn" (click)="removeFromCart(v.id)" [disabled]="getQty(v.id) === 0">−</button>
                 <span class="qty-val">{{ getQty(v.id) }}</span>
                 <button class="qty-btn" (click)="addToCart(p, v)">+</button>
               </div>
-              <div class="out-label" *ngIf="v.stock_warehouse === 0">Rupture</div>
+              <div class="out-label" *ngIf="v.stock_available === 0">Rupture</div>
             </div>
           </div>
         </div>
