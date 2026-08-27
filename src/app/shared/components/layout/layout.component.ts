@@ -27,10 +27,8 @@ interface NavSection {
 
         <!-- Brand -->
         <div class="sb-brand">
-          <div>
-            <img src="assets/logo.svg" alt="KeepOn" class="sb-logo-img" />
-            <div class="sb-sub">Gestion équipes terrain</div>
-          </div>
+          <div class="sb-mark">K</div>
+          <div><div class="sb-title">KeepOn</div><div class="sb-sub">Gestion équipes terrain</div></div>
         </div>
 
         <!-- Nav -->
@@ -42,7 +40,7 @@ interface NavSection {
                  [routerLink]="item.route"
                  routerLinkActive="active"
                  [routerLinkActiveOptions]="{exact: item.route === '/dashboard'}">
-                <span class="nav-icon" [innerHTML]="item.svg"></span>
+                <span class="nav-dot" aria-hidden="true"></span>
                 <span class="nav-label">{{ item.label }}</span>
               </a>
             </ng-container>
@@ -105,86 +103,91 @@ interface NavSection {
   `,
   styles: [`
     :host {
-      --ink:#0e1626; --ink3:#162030;
-      --nav-muted:#8b95a7; --nav-active:#2f6bff;
-      --bg:#f4f5f8; --card:#fff; --border:#e7eaf0;
-      --text:#1f2a37; --muted:#6b7280;
-      --blue:#2f6bff; --green:#16a34a;
-      --red:#e2483d;
-      --font:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      --grad:linear-gradient(150deg,#F0603F,#D93A1E);
+      --bg:#F5F4F1; --card:#fff; --border:#E9E6E0;
+      --text:#1A1917; --muted:#77736B; --muted2:#9A958C;
+      --red:#E0492F; --red-d:#B93A24; --red-soft:#FDEDE9;
+      --green:#4ADE80;
+      --font-body:'Instrument Sans',-apple-system,"Segoe UI",sans-serif;
+      --font-brand:var(--font-body);
     }
 
-    .app-shell { display:flex; height:100vh; overflow:hidden; font-family:var(--font); background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+    .app-shell { display:flex; height:100vh; overflow:hidden; font-family:var(--font-body); background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
 
     /* ── SIDEBAR ── */
     .sidebar {
-      width:240px; flex:0 0 240px;
-      background:var(--ink);
+      width:252px; flex:0 0 252px;
+      background:#16150F; color:#F5F4F1; border-right:0;
       display:flex; flex-direction:column; overflow:hidden;
     }
 
     .sb-brand {
       display:flex; align-items:center; gap:12px;
-      padding:22px 18px 14px;
+      padding:22px 20px 12px;
+      margin-bottom:10px;
     }
-    .sb-logo-img { width:77px; object-fit:contain; }
-    .sb-title { font-size:17px; font-weight:800; color:#fff; letter-spacing:-.01em; line-height:1.1; }
-    .sb-sub { font-size:11.5px; color:#7c879a; margin-top:1px; }
+    .sb-mark { width:34px; height:34px; border-radius:10px; background:var(--grad); display:grid; place-items:center; color:#fff; font-weight:600; font-size:15px; }
+    .sb-title { font-family:var(--font-brand); font-size:15px; font-weight:600; color:#F5F4F1; letter-spacing:-.01em; line-height:1.1; }
+    .sb-sub { font-size:11px; color:#85817A; margin-top:2px; }
 
-    .sb-divider { height:1px; background:rgba(255,255,255,.06); margin:4px 14px; }
+    .sb-divider { display:none; }
     .sb-section {
       padding:8px 14px 0;
       font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-      color:#3f4d5e; margin-bottom:4px;
+      color:#6B675F; margin:10px 0 4px; letter-spacing:.13em;
     }
 
-    .sb-nav { flex:1; overflow-y:auto; padding:6px 12px; display:flex; flex-direction:column; gap:2px; }
+    .sb-nav { flex:1; overflow-y:auto; padding:2px 16px; display:flex; flex-direction:column; gap:2px; }
     .sb-nav::-webkit-scrollbar { width:4px; }
-    .sb-nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.08); border-radius:4px; }
+    .sb-nav::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
 
     .nav-item {
       display:flex; align-items:center; gap:11px;
-      padding:10px 12px; border-radius:9px;
-      color:var(--nav-muted); font-size:14px; font-weight:500;
+      padding:9px 12px; border-radius:9px;
+      color:#A9A49B; font-size:13.5px; font-weight:500;
       text-decoration:none; width:100%; transition:.13s; position:relative;
     }
-    .nav-item:hover { background:rgba(255,255,255,.06); color:#dde4ef; }
-    .nav-item.active { background:var(--blue); color:#fff; box-shadow:0 6px 16px rgba(47,107,255,.38); }
+    .nav-item:hover { background:#201F16; color:#F5F4F1; }
+    .nav-item.active { background:#262419; color:#fff; font-weight:600; }
+    .nav-item.active .nav-icon { color:#F0603F; }
 
-    .nav-icon { display:flex; flex:0 0 17px; }
+    .nav-icon { display:flex; flex:0 0 17px; color:#6B675F; }
     .nav-icon ::ng-deep svg { width:17px; height:17px; }
 
     .nav-label { flex:1; }
+    .nav-dot { width:5px; height:5px; flex:0 0 5px; border-radius:999px; background:#3B3930; transition:.13s; }
+    .nav-item:hover .nav-dot { background:#6B675F; }
+    .nav-item.active .nav-dot { background:#F0603F; }
 
 
     /* ── FOOTER ── */
-    .sb-foot { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+    .sb-foot { padding:12px 16px 16px; display:flex; flex-direction:column; gap:8px; margin-top:8px; }
 
     .sb-role {
-      background:var(--ink3); border:1px solid rgba(255,255,255,.06);
-      border-radius:9px; padding:9px 13px;
+      background:#201F16; border:0;
+      border-radius:10px; padding:9px 13px;
       display:flex; align-items:center; gap:9px;
     }
     .sb-role-dot {
       width:8px; height:8px; border-radius:99px; flex:0 0 8px;
-      background:var(--green); box-shadow:0 0 0 3px rgba(22,163,74,.25);
+      background:var(--green); box-shadow:0 0 0 3px rgba(34,160,92,.18);
       animation:pulse 2.4s infinite;
     }
     @keyframes pulse {
-      0%,100% { box-shadow:0 0 0 3px rgba(22,163,74,.2); }
-      50%      { box-shadow:0 0 0 5px rgba(22,163,74,.07); }
+      0%,100% { box-shadow:0 0 0 3px rgba(34,160,92,.18); }
+      50%      { box-shadow:0 0 0 5px rgba(34,160,92,.06); }
     }
-    .sb-role-name { font-size:12.5px; font-weight:700; color:#c9d4e2; }
-    .sb-role-lbl  { font-size:10.5px; color:#5a6a7e; margin-top:1px; }
+    .sb-role-name { font-size:12.5px; font-weight:600; color:#F5F4F1; }
+    .sb-role-lbl  { font-size:10.5px; color:#85817A; margin-top:1px; }
 
     .sb-logout {
       display:flex; align-items:center; gap:9px;
-      color:var(--red); font-weight:700; font-size:13.5px;
-      padding:10px 12px; border-radius:9px;
+      color:#85817A; font-weight:500; font-size:12.5px;
+      padding:10px 12px; border-radius:10px;
       transition:.13s; width:100%; text-align:left;
-      font-family:var(--font); cursor:pointer; border:none; background:none;
+      font-family:var(--font-body); cursor:pointer; border:none; background:none;
     }
-    .sb-logout:hover { background:rgba(226,72,61,.1); }
+    .sb-logout:hover { background:#201F16; color:#F0603F; }
     .sb-logout svg { width:17px; height:17px; flex:0 0 17px; }
 
     /* ── TOPBAR ── */
@@ -192,41 +195,42 @@ interface NavSection {
 
     .topbar {
       height:62px; flex:0 0 62px;
-      background:var(--card); border-bottom:1px solid var(--border);
+      background:rgba(245,244,241,.88); backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--border);
       display:flex; align-items:center; justify-content:space-between;
       padding:0 28px; gap:16px;
     }
     .tb-left { display:flex; align-items:center; gap:12px; }
-    .tb-title { font-size:14.5px; font-weight:600; color:#374151; }
-    .tb-sep   { color:#e7eaf0; font-size:18px; font-weight:300; }
-    .tb-page  { font-size:14.5px; font-weight:700; color:var(--text); }
+    .tb-title { font-family:var(--font-brand); font-size:13px; font-weight:400; color:var(--muted); }
+    .tb-sep   { color:var(--border); font-size:18px; font-weight:300; }
+    .tb-page  { font-size:13px; font-weight:600; color:var(--text); }
 
     .tb-right { display:flex; align-items:center; gap:10px; }
 
     .tb-notif {
       width:36px; height:36px; border-radius:9px;
       display:flex; align-items:center; justify-content:center;
-      color:var(--muted); transition:.13s; border:none; background:none; cursor:pointer;
+      color:var(--muted); transition:.13s; border:1px solid #E6E3DC; background:#fff; cursor:pointer;
     }
-    .tb-notif:hover { background:#f1f4f8; }
+    .tb-notif:hover { background:var(--bg); }
     .tb-notif svg { width:19px; height:19px; }
 
     .tb-user {
       display:flex; align-items:center; gap:9px;
-      padding:6px 10px; border-radius:10px; transition:.13s; cursor:default;
+      padding:4px 10px 4px 4px; border-radius:10px; transition:.13s; cursor:default; border:1px solid #E6E3DC; background:#fff;
     }
-    .tb-user:hover { background:#f1f4f8; }
+    .tb-user:hover { background:var(--bg); }
     .tb-av {
       width:32px; height:32px; border-radius:10px; flex:0 0 32px;
-      background:var(--blue); color:#fff;
+      background:var(--grad); color:#fff;
       display:flex; align-items:center; justify-content:center;
-      font-weight:800; font-size:13px;
+      font-weight:600; font-size:12px;
     }
-    .tb-uname { font-size:14px; font-weight:700; line-height:1.2; }
+    .tb-uname { font-size:12px; font-weight:600; line-height:1.2; }
     .tb-urole { font-size:11px; color:var(--muted); }
 
     /* ── CONTENT ── */
-    .main-content { flex:1; overflow-y:auto; padding:26px 28px 56px; background:var(--bg); }
+    .main-content { flex:1; overflow-y:auto; padding:28px 32px 56px; background:var(--bg); }
 
     /* ── RESPONSIVE ── */
     @media (max-width:768px) {
@@ -234,8 +238,9 @@ interface NavSection {
       .sb-title, .sb-sub, .nav-label,
       .sb-section, .sb-divider, .sb-role-name, .sb-role-lbl { display:none; }
       .sb-brand { padding:14px 8px; justify-content:center; }
-      .sb-logo { flex:0 0 36px; }
+      .sb-logo-img { width:36px; }
       .nav-item { padding:12px; justify-content:center; }
+      .nav-dot { width:7px; height:7px; flex-basis:7px; }
       .sb-foot { align-items:center; padding:12px 8px; }
       .sb-role { padding:8px; justify-content:center; }
       .sb-logout { padding:10px; justify-content:center; }
@@ -273,6 +278,10 @@ export class LayoutComponent implements OnInit {
         {
           label: 'Commandes', route: '/orders',
           svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h9a1 1 0 0 1 1 1v18l-3-2-2 2-2-2-2 2-2-2-3 2V5a1 1 0 0 1 1-1z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></svg>`,
+        },
+        {
+          label: 'Factures', route: '/invoices',
+          svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
         },
         {
           label: 'Livraisons', route: '/delivery', roles: ['admin', 'delivery'],

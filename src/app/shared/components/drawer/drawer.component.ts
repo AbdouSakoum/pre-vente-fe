@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -47,11 +47,11 @@ import { CommonModule } from '@angular/common';
     }
     .btn-primary {
       display:flex; align-items:center; gap:8px;
-      padding:10px 20px; background:#3b82f6; color:#fff;
+      padding:10px 20px; background:linear-gradient(90deg, #FF3532, #FF7A30); color:#fff;
       border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:500;
     }
-    .btn-primary:hover { background:#2563eb; }
-    .btn-primary:disabled { background:#93c5fd; cursor:not-allowed; }
+    .btn-primary:hover { box-shadow:0 4px 12px rgba(255,83,45,.3); }
+    .btn-primary:disabled { background:#ffb8ae; cursor:not-allowed; }
     .btn-secondary {
       padding:10px 20px; background:#f1f5f9; color:#475569;
       border:none; border-radius:8px; cursor:pointer; font-size:14px;

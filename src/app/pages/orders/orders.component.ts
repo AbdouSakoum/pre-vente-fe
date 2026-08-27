@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -32,7 +32,7 @@ import { environment } from '../../../environments/environment';
           <option value="in_progress">En cours</option>
           <option value="delivered">Livrées</option>
         </select>
-        <button class="btn-primary" (click)="openForm()" *ngIf="auth.isPreSeller || auth.isAdmin">
+        <button class="btn-primary" (click)="openForm()" *ngIf="auth.isPreSeller || auth.isAdmin || auth.isStockManager">
           <span class="material-icons">add</span> Nouvelle commande
         </button>
       </div>
@@ -90,7 +90,7 @@ import { environment } from '../../../environments/environment';
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let o">
             <button class="btn-icon" (click)="openDetail(o)" title="Détail"><span class="material-icons">visibility</span></button>
-            <button class="btn-icon" (click)="openAssign(o)" *ngIf="auth.isAdmin && o.status === 'pending'" title="Assigner">
+            <button class="btn-icon" (click)="openAssign(o)" *ngIf="(auth.isAdmin || auth.isStockManager) && o.status === 'pending'" title="Assigner">
               <span class="material-icons">person_add</span>
             </button>
           </td>
@@ -295,7 +295,7 @@ import { environment } from '../../../environments/environment';
     .period-tabs { display:flex;gap:4px;background:#f0f2f6;border-radius:10px;padding:3px }
     .ptab { padding:6px 13px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:600;color:#64748b;cursor:pointer;transition:.13s;white-space:nowrap }
     .ptab:hover { color:#1e293b }
-    .ptab-active { background:#fff;color:#3b82f6;box-shadow:0 1px 3px rgba(16,24,40,.1) }
+    .ptab-active { background:#fff;color:#FF3532;box-shadow:0 1px 3px rgba(16,24,40,.1) }
     .item-title { font-size:14px; font-weight:500; color:#1e293b; }
     .item-sub { font-size:12px; color:#94a3b8; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .order-num { font-size:14px; font-weight:700; color:#1e293b; }
@@ -303,7 +303,7 @@ import { environment } from '../../../environments/environment';
     .no-total { color:#94a3b8; font-size:13px; }
     .badge { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; }
     .badge-pending { background:#fef3c7; color:#92400e; }
-    .badge-assigned { background:#dbeafe; color:#1e40af; }
+    .badge-assigned { background:#FFF1EF; color:#1e40af; }
     .badge-in_progress { background:#ede9fe; color:#5b21b6; }
     .badge-delivered { background:#dcfce7; color:#166534; }
     .badge-cancelled { background:#fee2e2; color:#991b1b; }
@@ -316,7 +316,7 @@ import { environment } from '../../../environments/environment';
     .lines-section { display:flex; flex-direction:column; gap:8px; }
     .lines-header { display:flex; justify-content:space-between; align-items:center; }
     .btn-add-line { display:flex; align-items:center; gap:4px; padding:5px 10px; border:1px dashed #cbd5e1; border-radius:6px; background:transparent; cursor:pointer; font-size:12px; color:#64748b; }
-    .btn-add-line:hover { border-color:#3b82f6; color:#3b82f6; }
+    .btn-add-line:hover { border-color:#FF3532; color:#FF3532; }
     .line-row { display:flex; gap:8px; align-items:flex-end; }
     .detail-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:14px; }
     .detail-row span:first-child { color:#64748b; }
@@ -326,7 +326,7 @@ import { environment } from '../../../environments/environment';
     .ln-variant { font-size:11px; color:#64748b; }
     .ln-qty { color:#64748b; white-space:nowrap; }
     .ln-price { color:#64748b; white-space:nowrap; }
-    .ln-total { font-weight:700; color:#2563eb; white-space:nowrap; text-align:right; }
+    .ln-total { font-weight:700; color:#E0231F; white-space:nowrap; text-align:right; }
     .totaux-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-top:16px; display:flex; flex-direction:column; gap:6px; }
     .tot-line { display:flex; justify-content:space-between; font-size:13px; color:#64748b; }
     .tot-line.grand { font-size:16px; font-weight:700; color:#1e293b; border-top:1px solid #e2e8f0; padding-top:8px; margin-top:4px; }
@@ -334,12 +334,12 @@ import { environment } from '../../../environments/environment';
     .pdf-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; margin-bottom:10px; }
     .pdf-btns { display:flex; flex-wrap:wrap; gap:8px; }
     .pdf-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:#374151; cursor:pointer; transition:.13s; }
-    .pdf-btn:hover { border-color:#2f6bff; color:#2f6bff; background:#f0f4ff; }
+    .pdf-btn:hover { border-color:#FF3532; color:#FF3532; background:#FFF1EF; }
     .pdf-btn svg { width:15px; height:15px; }
     .pdf-btn-facture { border-color:#16a34a; color:#16a34a; }
     .pdf-btn-facture:hover { background:#f0fdf4; border-color:#15803d; color:#15803d; }
     .pdf-btn:disabled { opacity:.5; cursor:not-allowed; }
-    .pdf-spinner { display:inline-block; width:13px; height:13px; border:2px solid #e2e8f0; border-top-color:#2f6bff; border-radius:50%; animation:spin .7s linear infinite; }
+    .pdf-spinner { display:inline-block; width:13px; height:13px; border:2px solid #e2e8f0; border-top-color:#FF3532; border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
     /* PDF Viewer */
     .pdf-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:flex; align-items:center; justify-content:center; padding:24px; }
@@ -353,13 +353,13 @@ import { environment } from '../../../environments/environment';
     .pdf-close { border-color:rgba(226,72,61,.4); color:#fca5a5; }
     .pdf-close:hover { background:rgba(226,72,61,.15); }
     .pdf-iframe { flex:1; border:none; width:100%; background:#fff; }
-    .line-subtotal { font-size:13px; font-weight:600; color:#2563eb; white-space:nowrap; align-self:center; min-width:70px; text-align:right; }
+    .line-subtotal { font-size:13px; font-weight:600; color:#E0231F; white-space:nowrap; align-self:center; min-width:70px; text-align:right; }
     /* Form sections */
     .form-section { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:14px; display:flex; flex-direction:column; gap:12px; }
     .form-section-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; }
     .radio-group { display:flex; gap:8px; }
     .radio-opt { display:flex; align-items:center; gap:6px; padding:8px 16px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; background:#fff; }
-    .radio-opt.sel { border-color:#3b82f6; background:#eaf1fe; color:#1d4ed8; }
+    .radio-opt.sel { border-color:#FF3532; background:#FFF1EF; color:#E0231F; }
     .radio-opt input { display:none; }
     /* Lignes articles */
     .line-cols-head { display:flex; align-items:center; gap:6px; font-size:11px; color:#94a3b8; font-weight:600; padding:0 2px 4px; }
@@ -369,7 +369,7 @@ import { environment } from '../../../environments/environment';
     .num-input { width:56px; text-align:center; padding:7px 6px; }
     .price-input { width:80px; text-align:right; }
     .tva-select { width:62px; font-size:12px; padding:7px 4px; }
-    .line-total-ht { width:80px; text-align:right; font-size:13px; font-weight:700; color:#2563eb; }
+    .line-total-ht { width:80px; text-align:right; font-size:13px; font-weight:700; color:#E0231F; }
     .btn-del-line { width:24px; height:24px; border:none; background:none; cursor:pointer; color:#94a3b8; display:flex; align-items:center; justify-content:center; border-radius:4px; }
     .btn-del-line:hover { background:#fee2e2; color:#ef4444; }
     .btn-del-line .material-icons { font-size:16px; }
@@ -411,8 +411,8 @@ export class OrdersComponent implements OnInit {
   ngOnInit() {
     this.load();
     this.api.get<any[]>('/clients').subscribe(c => { this.clients = [...c]; this.cdr.detectChanges(); });
-    if (this.auth.isAdmin) {
-      this.api.get<any[]>('/users').subscribe(u => { this.deliveryUsers = u.filter((x: any) => x.role === 'delivery'); this.cdr.detectChanges(); });
+    if (this.auth.isAdmin || this.auth.isStockManager) {
+      this.api.get<any[]>('/users/deliverers').subscribe(u => { this.deliveryUsers = u; this.cdr.detectChanges(); });
     }
     this.api.get<any[]>('/products').subscribe((products: any[]) => {
       this.allVariants = products.flatMap((p: any) =>

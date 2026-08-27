@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
@@ -262,7 +262,7 @@ const CATEGORY_LABELS: Record<string, string> = {
       display: inline-block; padding: 3px 10px; border-radius: 20px;
       font-size: 11px; font-weight: 600;
     }
-    .badge-entreprise { background: #dbeafe; color: #1d4ed8; }
+    .badge-entreprise { background: #FFF1EF; color: #E0231F; }
     .badge-particulier { background: #f0fdf4; color: #15803d; }
 
     /* DETAIL PANEL */
@@ -300,8 +300,8 @@ const CATEGORY_LABELS: Record<string, string> = {
     /* FORM */
     .form-section-title {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: #3b82f6;
-      padding-bottom: 6px; border-bottom: 2px solid #dbeafe;
+      letter-spacing: 0.06em; color: #FF3532;
+      padding-bottom: 6px; border-bottom: 2px solid #FFF1EF;
       margin-bottom: -4px;
     }
     .form-section-title.secondary { color: #94a3b8; border-bottom-color: #f1f5f9; }

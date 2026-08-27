@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+﻿import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -19,6 +19,7 @@ interface DeliveryOrder {
   status: 'assigned' | 'in_progress' | 'delivered';
   payment_status: 'unpaid' | 'partial' | 'paid';
   paid_amount: number;
+  payment_method: 'especes' | 'cheque' | 'virement' | null;
   total_ttc: number;
   started_at: string | null;
   delivered_at: string | null;
@@ -30,7 +31,7 @@ interface DeliveryOrder {
 interface Driver { id: string; name: string; }
 
 const COLS = [
-  { id: 'assigned',    label: 'À prendre en charge', color: '#2f6bff', soft: '#e9f0ff', textColor: '#2055e0' },
+  { id: 'assigned',    label: 'À prendre en charge', color: '#FF3532', soft: '#FFF1EF', textColor: '#E0231F' },
   { id: 'in_progress', label: 'En cours',             color: '#d97706', soft: '#fdf2e3', textColor: '#a8620a' },
   { id: 'delivered',   label: 'Livré',                color: '#16a34a', soft: '#e6f6ec', textColor: '#117a39' },
 ];
@@ -61,7 +62,7 @@ const COLS = [
     </div>
     <!-- Switcher livreur (admin seulement) -->
     <div class="driver-chip" *ngIf="auth.isAdmin && drivers().length">
-      <div class="drv-av" [style.background]="'#2f6bff'">{{ initials(currentDriverName()) }}</div>
+      <div class="drv-av" [style.background]="'#FF3532'">{{ initials(currentDriverName()) }}</div>
       <div>
         <div class="drv-name">{{ currentDriverName() }}</div>
         <div class="drv-sub">Livreur</div>
@@ -228,7 +229,7 @@ const COLS = [
       <!-- Navigation GPS -->
       <div class="sec-label" style="display:flex;align-items:center;gap:8px">
         Itinéraire
-        <span *ngIf="hasCoords(o)" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;background:#e9f0ff;color:#2f6bff;border-radius:20px;padding:2px 8px;text-transform:none;letter-spacing:0">
+        <span *ngIf="hasCoords(o)" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;background:#FFF1EF;color:#FF3532;border-radius:20px;padding:2px 8px;text-transform:none;letter-spacing:0">
           <span class="material-icons" style="font-size:11px">my_location</span> GPS précis
         </span>
       </div>
@@ -247,7 +248,7 @@ const COLS = [
         </button>
       </div>
       <div class="coords-info" *ngIf="hasCoords(o)">
-        <span class="material-icons" style="font-size:13px;color:#2f6bff">location_on</span>
+        <span class="material-icons" style="font-size:13px;color:#FF3532">location_on</span>
         {{ o.delivery_latitude }}, {{ o.delivery_longitude }}
       </div>
       <div class="coords-info coords-fallback" *ngIf="!hasCoords(o)">
@@ -258,7 +259,7 @@ const COLS = [
       <!-- Adresse -->
       <div class="sec-label">Adresse</div>
       <div class="addr-box">
-        <span class="material-icons" style="color:#2f6bff;font-size:18px;flex-shrink:0;margin-top:1px">location_on</span>
+        <span class="material-icons" style="color:#FF3532;font-size:18px;flex-shrink:0;margin-top:1px">location_on</span>
         <div>
           <div class="addr-main">{{ o.delivery_address }}</div>
           <div class="addr-sub" *ngIf="o.desired_delivery_date">Créneau · {{ o.desired_delivery_date | date:'dd/MM/yyyy' }}</div>
@@ -304,7 +305,7 @@ const COLS = [
       <!-- Admin : info livreur -->
       <ng-container *ngIf="auth.isAdmin">
         <div class="driver-banner">
-          <span class="material-icons" style="font-size:28px;color:#2f6bff">account_circle</span>
+          <span class="material-icons" style="font-size:28px;color:#FF3532">account_circle</span>
           <div>
             <div style="font-size:14px;font-weight:700">{{ o.delivery_name || 'Non assigné' }}</div>
             <div style="font-size:12px;color:#6b7280;margin-top:2px">{{ statusLabel(o) }}</div>
@@ -355,9 +356,26 @@ const COLS = [
           <div class="due-val">{{ fmtDH(codDue) }}</div>
         </div>
         <div class="due-mode">
-          <span class="material-icons">payments</span>
-          <span>Espèces</span>
+          <span class="material-icons">{{ paymentMethodIcon(codMethod()) }}</span>
+          <span>{{ paymentMethodLabel(codMethod()) }}</span>
         </div>
+      </div>
+
+      <!-- Mode de paiement -->
+      <label class="field-label">Mode de paiement</label>
+      <div class="method-row">
+        <button class="method-btn" [class.method-active]="codMethod() === 'especes'" (click)="codMethod.set('especes')">
+          <span class="material-icons">payments</span>
+          Espèces
+        </button>
+        <button class="method-btn" [class.method-active]="codMethod() === 'cheque'" (click)="codMethod.set('cheque')">
+          <span class="material-icons">description</span>
+          Chèque
+        </button>
+        <button class="method-btn" [class.method-active]="codMethod() === 'virement'" (click)="codMethod.set('virement')">
+          <span class="material-icons">swap_horiz</span>
+          Virement
+        </button>
       </div>
 
       <!-- Input -->
@@ -423,7 +441,7 @@ const COLS = [
   styles: [`
     /* ── Variables ───────────────────────────────────────── */
     :host {
-      --blue:#2f6bff; --blue-d:#2055e0; --blue-soft:#e9f0ff;
+      --red:#FF3532; --red-d:#E0231F; --red-soft:#FFF1EF;
       --green:#16a34a; --green-soft:#e6f6ec;
       --amber:#d97706; --amber-soft:#fdf2e3;
       --red:#e2483d; --red-soft:#fdeae9;
@@ -454,14 +472,14 @@ const COLS = [
     .period-tabs { display:flex;gap:4px;background:#f0f2f6;border-radius:10px;padding:3px }
     .ptab { padding:6px 13px;border:none;border-radius:8px;background:transparent;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.13s;white-space:nowrap }
     .ptab:hover { color:var(--text) }
-    .ptab-active { background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(16,24,40,.1) }
+    .ptab-active { background:#fff;color:var(--red);box-shadow:0 1px 3px rgba(16,24,40,.1) }
 
     /* ── KPIs ────────────────────────────────────────────── */
     .kpis { display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:22px }
     .kpi { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px }
     .ki { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0 }
     .ki .material-icons { font-size:20px }
-    .ki-blue  { background:var(--blue-soft);color:var(--blue) }
+    .ki-blue  { background:var(--red-soft);color:var(--red) }
     .ki-amber { background:var(--amber-soft);color:var(--amber) }
     .ki-green { background:var(--green-soft);color:var(--green) }
     .ki-red   { background:var(--red-soft);color:var(--red) }
@@ -485,7 +503,7 @@ const COLS = [
     .col-empty { margin:auto;text-align:center;color:var(--muted2);font-size:13px;padding:24px 10px;display:flex;flex-direction:column;align-items:center;gap:6px }
 
     /* ── Delivery card ───────────────────────────────────── */
-    .dcard { background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;border-left:3px solid var(--blue);transition:.13s;box-shadow:var(--shadow) }
+    .dcard { background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;border-left:3px solid var(--red);transition:.13s;box-shadow:var(--shadow) }
     .dcard:hover { box-shadow:0 6px 20px rgba(16,24,40,.09);transform:translateY(-1px) }
     .dcard-doing { border-left-color:var(--amber) }
     .dcard-done  { border-left-color:var(--green) }
@@ -512,7 +530,7 @@ const COLS = [
     .dc-actions { display:flex;gap:7px }
     .driver-row { display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text);padding:4px 0;width:100% }
     .status-chip { margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px }
-    .chip-assigned    { background:var(--blue-soft);color:var(--blue-d) }
+    .chip-assigned    { background:var(--red-soft);color:var(--red-d) }
     .chip-in_progress { background:var(--amber-soft);color:#a8620a }
     .chip-delivered   { background:var(--green-soft);color:#117a39 }
     .driver-banner { display:flex;align-items:center;gap:12px;flex:1;padding:6px 0 }
@@ -523,8 +541,8 @@ const COLS = [
     .act { display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;padding:8px 13px;border-radius:9px;border:none;cursor:pointer;transition:.13s }
     .act .material-icons { font-size:15px }
     .act-full { flex:1;padding:12px }
-    .act-primary { background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(47,107,255,.28) }
-    .act-primary:hover { background:var(--blue-d) }
+    .act-primary { background:linear-gradient(90deg, #FF3532, #FF7A30);color:#fff;box-shadow:0 4px 12px rgba(255,53,45,.28) }
+    .act-primary:hover { background:var(--red-d) }
     .act-go { background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.26) }
     .act-go:hover { filter:brightness(.95) }
     .act-ghost { background:var(--card);border:1px solid var(--border);color:#475569;flex:1 }
@@ -548,7 +566,7 @@ const COLS = [
     .db { flex:1;overflow-y:auto;padding:16px 20px 20px }
 
     .status-line { display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:16px }
-    .sl-assigned   { background:var(--blue-soft);color:var(--blue-d) }
+    .sl-assigned   { background:var(--red-soft);color:var(--red-d) }
     .sl-in_progress { background:var(--amber-soft);color:#a8620a }
     .sl-delivered   { background:var(--green-soft);color:#117a39 }
 
@@ -557,7 +575,7 @@ const COLS = [
     .cbtn:hover { border-color:#cdd9ec;background:#fafcff }
     .cbtn-ic { width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--green-soft);color:var(--green) }
     .cbtn-ic .material-icons { font-size:17px }
-    .cbtn-ic-blue { background:var(--blue-soft);color:var(--blue) }
+    .cbtn-ic-blue { background:var(--red-soft);color:var(--red) }
     .cbtn-l { font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em }
     .cbtn-v { font-size:13px;font-weight:700;margin-top:1px }
 
@@ -600,7 +618,7 @@ const COLS = [
     .df { display:flex;gap:9px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0 }
     .done-banner { flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700;color:var(--green);padding:12px }
     .done-banner .material-icons { font-size:20px }
-    .act-pdf { flex:1;padding:10px;background:#f0f4ff;color:#2f6bff;border:1px solid #c7d8ff;font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.13s }
+    .act-pdf { flex:1;padding:10px;background:#FFF1EF;color:#FF3532;border:1px solid #ffcfc9;font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.13s }
     .act-pdf:hover:not(:disabled) { background:#e0ebff }
     .act-pdf:disabled { opacity:.5;cursor:not-allowed }
     .act-pdf .material-icons { font-size:17px }
@@ -636,12 +654,18 @@ const COLS = [
 
     .field-label { display:block;font-size:12.5px;font-weight:600;color:#475569;margin-bottom:6px }
     .field-input { width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:20px;font-weight:800;color:var(--text);box-sizing:border-box;outline:none }
-    .field-input:focus { border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,107,255,.12) }
+    .field-input:focus { border-color:var(--red);box-shadow:0 0 0 3px rgba(255,53,45,.12) }
+
+    .method-row { display:flex;gap:8px;margin-bottom:16px }
+    .method-btn { flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:#64748b;font-size:11.5px;font-weight:600;cursor:pointer;transition:.12s }
+    .method-btn .material-icons { font-size:19px }
+    .method-btn:hover { border-color:var(--red);color:var(--red) }
+    .method-active { background:var(--red-soft);color:var(--red);border-color:var(--red) }
 
     .quick-btns { display:flex;gap:7px;margin-top:9px;flex-wrap:wrap }
     .qbtn { flex:1 0 auto;font-size:12.5px;font-weight:700;padding:7px 0;border-radius:8px;border:1px solid var(--border);color:#475569;background:#fff;cursor:pointer;transition:.12s }
-    .qbtn:hover { border-color:var(--blue);color:var(--blue) }
-    .qbtn-active { background:var(--blue-soft);color:var(--blue);border-color:var(--blue) }
+    .qbtn:hover { border-color:var(--red);color:var(--red) }
+    .qbtn-active { background:var(--red-soft);color:var(--red);border-color:var(--red) }
 
     .calc-row { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:#f8f9fb;font-size:14px;font-weight:700;margin-top:13px }
     .calc-green .calc-val { color:var(--green);font-size:16px }
@@ -675,6 +699,7 @@ export class DeliveryComponent implements OnInit {
   codOrder = signal<DeliveryOrder | null>(null);
   codAmount = signal(0);
   codPartial = signal(false);
+  codMethod = signal<'especes' | 'cheque' | 'virement'>('especes');
 
   toastMsg = signal('');
   private toastTimer: any;
@@ -685,7 +710,7 @@ export class DeliveryComponent implements OnInit {
 
   period: 'today' | 'week' | 'month' | 'all' = 'today';
   readonly todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  private readonly COLORS = ['#3b82f6','#0d9488','#7c3aed','#d97706','#e2483d','#16a34a'];
+  private readonly COLORS = ['#FF3532','#0d9488','#7c3aed','#d97706','#e2483d','#16a34a'];
 
   constructor(private api: ApiService, public auth: AuthService, private sanitizer: DomSanitizer) {}
 
@@ -800,6 +825,7 @@ export class DeliveryComponent implements OnInit {
     this.codOrder.set(o);
     this.codAmount.set(this.getDue(o));
     this.codPartial.set(false);
+    this.codMethod.set('especes');
     this.codOpen.set(true);
     this.drawerOpen.set(false);
   }
@@ -809,7 +835,7 @@ export class DeliveryComponent implements OnInit {
   confirmCod() {
     const o = this.codOrder();
     if (!o) return;
-    this.api.post<any>(`/orders/${o.id}/deliver`, { paid_amount: this.codAmount() }).subscribe({
+    this.api.post<any>(`/orders/${o.id}/deliver`, { paid_amount: this.codAmount(), payment_method: this.codMethod() }).subscribe({
       next: (res) => {
         this.codOpen.set(false);
         this.patchOrder(o.id, res.order);
@@ -854,9 +880,21 @@ export class DeliveryComponent implements OnInit {
   fmtDH(n: number): string { return Number(n ?? 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' DH'; }
 
   payLabel(o: DeliveryOrder): string {
-    if (o.payment_status === 'paid') return 'Payé';
+    if (o.payment_status === 'paid') {
+      return o.payment_method ? `Payé · ${this.paymentMethodLabel(o.payment_method)}` : 'Payé';
+    }
     if (o.payment_status === 'partial') return `Partiel · reste ${this.fmtDH(this.getDue(o))}`;
     return 'Non payé';
+  }
+
+  paymentMethodLabel(method: 'especes' | 'cheque' | 'virement' | null): string {
+    const map: Record<string, string> = { especes: 'Espèces', cheque: 'Chèque', virement: 'Virement' };
+    return method ? map[method] : 'Espèces';
+  }
+
+  paymentMethodIcon(method: 'especes' | 'cheque' | 'virement' | null): string {
+    const map: Record<string, string> = { especes: 'payments', cheque: 'description', virement: 'swap_horiz' };
+    return method ? map[method] : 'payments';
   }
 
   statusLabel(o: DeliveryOrder): string {

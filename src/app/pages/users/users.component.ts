@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -57,6 +57,79 @@ const ROLES = [
       <div *ngIf="!users.length" class="empty-state">
         <span class="material-icons">group_off</span>
         <p>Aucun membre dans l'équipe</p>
+      </div>
+    </div>
+
+    <!-- GROUPES DE PRÉ-VENDEURS -->
+    <div class="page-header" style="margin-top:32px">
+      <div>
+        <h2>Groupes de pré-vendeurs</h2>
+        <p class="subtitle">Utilisés pour restreindre la visibilité de certains produits du catalogue</p>
+      </div>
+      <button class="btn-primary" (click)="openGroupForm()">
+        <span class="material-icons">group_add</span>
+        Nouveau groupe
+      </button>
+    </div>
+
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr><th>Nom</th><th>Membres</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let g of sellerGroups" class="table-row">
+            <td>{{ g.name }}</td>
+            <td>{{ g.member_ids?.length || 0 }} pré-vendeur(s)</td>
+            <td>
+              <button class="btn-icon" (click)="openGroupForm(g)" title="Modifier"><span class="material-icons">edit</span></button>
+              <button class="btn-icon danger" (click)="deleteGroup(g)" title="Supprimer"><span class="material-icons">delete</span></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="!sellerGroups.length" class="empty-state">
+        <span class="material-icons">groups</span>
+        <p>Aucun groupe créé</p>
+      </div>
+    </div>
+
+    <!-- DRAWER GROUPE -->
+    <div class="overlay" *ngIf="showGroupForm" (click)="closeGroupForm()"></div>
+    <div class="drawer" [class.open]="showGroupForm">
+      <div class="drawer-header">
+        <h3>{{ editingGroup ? 'Modifier le groupe' : 'Nouveau groupe' }}</h3>
+        <button class="btn-icon" (click)="closeGroupForm()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="drawer-body">
+        <div class="field-group">
+          <label>Nom du groupe *</label>
+          <input class="field-input" [(ngModel)]="groupForm.name" placeholder="Zone Nord" />
+        </div>
+        <div class="field-group">
+          <label>Pré-vendeurs membres</label>
+          <div class="group-checklist">
+            <label class="group-check" *ngFor="let u of preSellers">
+              <input type="checkbox" [checked]="groupForm.member_ids.includes(u.id)" (change)="toggleGroupMember(u.id)" />
+              {{ u.name }}
+            </label>
+            <div class="empty-state" *ngIf="!preSellers.length" style="padding:16px">
+              <p>Aucun pré-vendeur dans l'équipe</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="groupErrorMsg" class="error-banner">
+          <span class="material-icons">error_outline</span> {{ groupErrorMsg }}
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <button class="btn-secondary" (click)="closeGroupForm()">Annuler</button>
+        <button class="btn-primary" (click)="saveGroup()" [disabled]="savingGroup">
+          <span class="material-icons">{{ savingGroup ? 'hourglass_top' : 'save' }}</span>
+          {{ savingGroup ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
       </div>
     </div>
 
@@ -159,12 +232,12 @@ const ROLES = [
     /* BUTTONS */
     .btn-primary {
       display:flex; align-items:center; gap:8px;
-      padding:9px 18px; background:#3b82f6; color:#fff;
+      padding:9px 18px; background:linear-gradient(90deg, #FF3532, #FF7A30); color:#fff;
       border:none; border-radius:8px; cursor:pointer;
       font-size:14px; font-weight:500;
     }
-    .btn-primary:hover { background:#2563eb; }
-    .btn-primary:disabled { background:#93c5fd; cursor:not-allowed; }
+    .btn-primary:hover { box-shadow:0 4px 12px rgba(255,83,45,.3); }
+    .btn-primary:disabled { background:#ffb8ae; cursor:not-allowed; }
     .btn-secondary {
       padding:9px 18px; background:#f1f5f9; color:#475569;
       border:none; border-radius:8px; cursor:pointer; font-size:14px;
@@ -185,7 +258,7 @@ const ROLES = [
     .user-cell { display:flex; align-items:center; gap:12px; padding:4px 0; }
     .avatar {
       width:36px; height:36px; border-radius:50%;
-      background:#3b82f6; color:#fff;
+      background:#FF3532; color:#fff;
       display:flex; align-items:center; justify-content:center;
       font-weight:700; font-size:14px; flex-shrink:0;
     }
@@ -195,7 +268,7 @@ const ROLES = [
     /* BADGES */
     .role-badge { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; }
     .admin { background:#fef3c7; color:#92400e; }
-    .stock_manager { background:#dbeafe; color:#1e40af; }
+    .stock_manager { background:#FFF1EF; color:#1e40af; }
     .pre_seller { background:#f0fdf4; color:#166534; }
     .delivery { background:#fdf4ff; color:#7e22ce; }
     .status-dot { font-size:12px; font-weight:500; }
@@ -232,7 +305,7 @@ const ROLES = [
       padding:10px 12px; border:1px solid #d1d5db; border-radius:8px;
       font-size:14px; outline:none; transition:border 0.15s;
     }
-    .field-input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.1); }
+    .field-input:focus { border-color:#FF3532; box-shadow:0 0 0 3px rgba(255,53,50,0.1); }
     .field-select {
       padding:10px 12px; border:1px solid #d1d5db; border-radius:8px;
       font-size:14px; background:#fff; outline:none; cursor:pointer;
@@ -252,8 +325,11 @@ const ROLES = [
       background:none; border:none; cursor:pointer;
       color:#94a3b8; display:flex; align-items:center; padding:4px;
     }
-    .btn-eye:hover { color:#3b82f6; }
+    .btn-eye:hover { color:#FF3532; }
     .btn-eye .material-icons { font-size:20px; }
+
+    .group-checklist { display:flex; flex-direction:column; gap:8px; margin-top:4px; max-height:240px; overflow-y:auto; }
+    .group-check { display:flex; align-items:center; gap:8px; font-size:14px; color:#1e293b; cursor:pointer; }
   `]
 })
 export class UsersComponent implements OnInit {
@@ -272,12 +348,60 @@ export class UsersComponent implements OnInit {
 
   form: any = { name: '', email: '', role: 'pre_seller', password: '', is_active: true };
 
+  sellerGroups: any[] = [];
+  showGroupForm = false;
+  editingGroup: any = null;
+  savingGroup = false;
+  groupErrorMsg = '';
+  groupForm: { name: string; member_ids: string[] } = { name: '', member_ids: [] };
+
+  get preSellers(): any[] { return this.users.filter(u => u.role === 'pre_seller'); }
+
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() { this.load(); this.loadGroups(); }
 
   load() {
     this.api.get<any[]>('/users').subscribe(u => { this.users = [...u]; this.cdr.detectChanges(); });
+  }
+
+  loadGroups() {
+    this.api.get<any[]>('/seller-groups').subscribe(g => { this.sellerGroups = g; this.cdr.detectChanges(); });
+  }
+
+  openGroupForm(g?: any) {
+    this.editingGroup = g || null;
+    this.groupForm = { name: g?.name || '', member_ids: (g?.member_ids || []).slice() };
+    this.groupErrorMsg = '';
+    this.showGroupForm = true;
+  }
+
+  closeGroupForm() { this.showGroupForm = false; this.groupErrorMsg = ''; }
+
+  toggleGroupMember(userId: string) {
+    this.groupForm.member_ids = this.groupForm.member_ids.includes(userId)
+      ? this.groupForm.member_ids.filter(id => id !== userId)
+      : [...this.groupForm.member_ids, userId];
+  }
+
+  saveGroup() {
+    this.groupErrorMsg = '';
+    if (!this.groupForm.name.trim()) { this.groupErrorMsg = 'Nom du groupe obligatoire'; return; }
+
+    setTimeout(() => { this.savingGroup = true; this.cdr.detectChanges(); });
+    const obs = this.editingGroup
+      ? this.api.put(`/seller-groups/${this.editingGroup.id}`, this.groupForm)
+      : this.api.post('/seller-groups', this.groupForm);
+
+    obs.subscribe({
+      next: () => { setTimeout(() => { this.savingGroup = false; this.cdr.detectChanges(); this.closeGroupForm(); this.loadGroups(); }); },
+      error: (err) => { setTimeout(() => { this.savingGroup = false; this.groupErrorMsg = err.error?.message || 'Erreur'; this.cdr.detectChanges(); }); }
+    });
+  }
+
+  deleteGroup(g: any) {
+    if (!confirm(`Supprimer le groupe "${g.name}" ?`)) return;
+    this.api.delete(`/seller-groups/${g.id}`).subscribe(() => this.loadGroups());
   }
 
   openForm() {

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -573,7 +573,7 @@ import { forkJoin } from 'rxjs';
     .kpi-card .material-icons { font-size:28px; opacity:.85; }
     .kpi-val { font-size:20px; font-weight:800; line-height:1.1; }
     .kpi-lbl { font-size:12px; opacity:.85; margin-top:2px; }
-    .kpi-blue { background:#2f6bff; }
+    .kpi-blue { background:linear-gradient(90deg, #FF3532, #FF7A30); }
     .kpi-teal { background:#0d9488; }
     .kpi-amber { background:#d97706; }
     .kpi-purple { background:#7c3aed; }
@@ -588,7 +588,7 @@ import { forkJoin } from 'rxjs';
     .search-box input { border:none; outline:none; font-size:14px; width:100%; }
     .seg-ctrl { display:flex; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:3px; gap:2px; }
     .seg-ctrl button { padding:6px 13px; border-radius:6px; border:none; font-size:13px; font-weight:500; color:#64748b; cursor:pointer; background:transparent; }
-    .seg-ctrl button.active { background:#eff6ff; color:#2563eb; font-weight:700; }
+    .seg-ctrl button.active { background:#eff6ff; color:#E0231F; font-weight:700; }
     /* Table */
     .item-title { font-size:14px; font-weight:500; color:#1e293b; }
     .item-sub { font-size:12px; color:#94a3b8; margin-top:1px; }
@@ -601,7 +601,7 @@ import { forkJoin } from 'rxjs';
     /* Badges */
     .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     .badge-green { background:#dcfce7; color:#166534; }
-    .badge-blue { background:#dbeafe; color:#1e40af; }
+    .badge-blue { background:#FFF1EF; color:#1e40af; }
     .badge-amber { background:#fef3c7; color:#92400e; }
     .badge-grey { background:#f1f5f9; color:#475569; }
     .badge-red { background:#fee2e2; color:#dc2626; }
@@ -622,7 +622,7 @@ import { forkJoin } from 'rxjs';
     .text-green { color:#16a34a !important; } .text-red { color:#dc2626 !important; }
     .text-center { text-align:center; }
     /* Btn row */
-    .btn-row { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:#3b82f6; padding:5px 9px; border-radius:6px; border:none; background:transparent; cursor:pointer; }
+    .btn-row { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; color:#FF3532; padding:5px 9px; border-radius:6px; border:none; background:transparent; cursor:pointer; }
     .btn-row:hover { background:#eff6ff; }
     .btn-row .material-icons { font-size:15px; }
     .btn-ghost { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; }
@@ -637,7 +637,7 @@ import { forkJoin } from 'rxjs';
     .field-group { display:flex; flex-direction:column; gap:5px; }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .field-input { padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:14px; outline:none; }
-    .field-input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+    .field-input:focus { border-color:#FF3532; box-shadow:0 0 0 3px rgba(255,53,50,.12); }
     .field-input.sm { padding:7px 9px; font-size:13px; }
     .field-input.field-error { border-color:#ef4444; }
     .field-input:disabled { background:#f8fafc; color:#94a3b8; }
@@ -653,8 +653,8 @@ import { forkJoin } from 'rxjs';
     .btn-del { width:32px; height:32px; border:none; background:transparent; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#ef4444; }
     .btn-del:hover { background:#fee2e2; }
     .btn-del .material-icons { font-size:17px; }
-    .btn-add-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#3b82f6; padding:8px 0; border:none; background:transparent; cursor:pointer; }
-    .btn-add-line:hover { color:#2563eb; }
+    .btn-add-line { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#FF3532; padding:8px 0; border:none; background:transparent; cursor:pointer; }
+    .btn-add-line:hover { color:#E0231F; }
     .total-box { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:#f8fafc; border-radius:9px; font-size:14px; color:#64748b; }
     .total-box strong { font-size:17px; color:#1e293b; }
     .stock-hint { font-size:12px; color:#94a3b8; padding:2px 0 6px 2px; }
@@ -673,11 +673,11 @@ import { forkJoin } from 'rxjs';
     .detail-table td { padding:10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
     .detail-table tr:last-child td { border-bottom:none; }
     .drawer-meta { font-size:13px; color:#94a3b8; margin-bottom:14px; }
-    .pdf-btn-stock { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:#2f6bff; border-color:#2f6bff; cursor:pointer; transition:.13s; }
+    .pdf-btn-stock { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border:1px solid #e2e8f0; border-radius:9px; background:#fff; font-size:13px; font-weight:600; color:#FF3532; border-color:#FF3532; cursor:pointer; transition:.13s; }
     .pdf-btn-stock:hover:not(:disabled) { background:#f0f4ff; }
     .pdf-btn-stock:disabled { opacity:.5; cursor:not-allowed; }
     .pdf-btn-stock svg { width:15px; height:15px; }
-    .br-spinner { display:inline-block; width:12px; height:12px; border:2px solid #e2e8f0; border-top-color:#2f6bff; border-radius:50%; animation:spin .7s linear infinite; }
+    .br-spinner { display:inline-block; width:12px; height:12px; border:2px solid #e2e8f0; border-top-color:#FF3532; border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
     .pdf-overlay-stock { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:flex; align-items:center; justify-content:center; padding:24px; }
     .pdf-modal-stock { display:flex; flex-direction:column; width:100%; max-width:900px; height:90vh; background:#1e2533; border-radius:14px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.5); }

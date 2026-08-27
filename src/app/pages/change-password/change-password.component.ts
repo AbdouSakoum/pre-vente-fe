@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+﻿import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,17 @@ import { ApiService } from '../../services/api.service';
         </div>
         <h2>Changement de mot de passe</h2>
         <p class="cp-subtitle">Pour des raisons de sécurité, vous devez définir un nouveau mot de passe avant de continuer.</p>
+
+        <div class="field-group">
+          <label>Ancien mot de passe <span class="req">*</span></label>
+          <div class="input-wrapper">
+            <input class="field-input" [type]="showOld ? 'text' : 'password'"
+              [(ngModel)]="oldPassword" placeholder="Mot de passe actuel" />
+            <button class="toggle-eye" type="button" (click)="showOld=!showOld">
+              <span class="material-icons">{{ showOld ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+        </div>
 
         <div class="field-group">
           <label>Nouveau mot de passe <span class="req">*</span></label>
@@ -66,7 +77,7 @@ import { ApiService } from '../../services/api.service';
       box-shadow:0 4px 24px rgba(0,0,0,0.08);
     }
     .cp-icon { text-align:center; }
-    .cp-icon .material-icons { font-size:48px; color:#3b82f6; }
+    .cp-icon .material-icons { font-size:48px; color:#FF3532; }
     h2 { text-align:center; margin:0; font-size:20px; color:#1e293b; }
     .cp-subtitle { text-align:center; font-size:13px; color:#64748b; margin:0; line-height:1.5; }
     .input-wrapper { position:relative; }
@@ -86,8 +97,10 @@ import { ApiService } from '../../services/api.service';
   `]
 })
 export class ChangePasswordComponent {
+  oldPassword = '';
   newPassword = '';
   confirmPassword = '';
+  showOld = false;
   showPwd = false;
   showConfirm = false;
   loading = false;
@@ -108,10 +121,11 @@ export class ChangePasswordComponent {
   }
 
   submit() {
+    if (!this.oldPassword) { this.errorMsg = 'Ancien mot de passe requis'; return; }
     if (!this.newPassword || this.newPassword.length < 6) { this.errorMsg = 'Minimum 6 caractères'; return; }
     if (this.newPassword !== this.confirmPassword) { this.errorMsg = 'Les mots de passe ne correspondent pas'; return; }
     this.loading = true;
-    this.api.post('/auth/change-password', { new_password: this.newPassword }).subscribe({
+    this.api.post('/auth/change-password', { old_password: this.oldPassword, new_password: this.newPassword }).subscribe({
       next: () => {
         localStorage.removeItem('must_change_password');
         this.router.navigate(['/']);

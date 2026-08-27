@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -315,6 +315,20 @@ interface CartLine {
       <button class="btn-add-variant" type="button" (click)="addVariant()">
         <span class="material-icons">add</span> Ajouter une variante
       </button>
+
+      <div class="form-section-title" style="margin-top:24px">Visibilité</div>
+      <div class="field-group">
+        <label>Groupes de pré-vendeurs</label>
+        <div class="field-hint">Aucun groupe coché = visible par tous les pré-vendeurs</div>
+        <div class="group-checklist">
+          <label class="group-check" *ngFor="let g of sellerGroups">
+            <input type="checkbox" [checked]="isGroupSelected(g.id)" (change)="toggleGroup(g.id)" />
+            {{ g.name }}
+          </label>
+          <div class="empty-hint" *ngIf="!sellerGroups.length">Aucun groupe créé pour le moment.</div>
+        </div>
+      </div>
+
       <div *ngIf="errorMsg" class="error-banner" style="margin-top:16px">
         <span class="material-icons">error_outline</span> {{ errorMsg }}
       </div>
@@ -363,7 +377,7 @@ interface CartLine {
       position:relative; width:44px; height:24px; border-radius:999px;
       background:#e2e8f0; border:none; cursor:pointer; transition:background .2s; padding:0;
     }
-    .toggle-btn.on { background:#3b82f6; }
+    .toggle-btn.on { background:#FF3532; }
     .toggle-knob {
       position:absolute; top:3px; left:3px; width:18px; height:18px;
       border-radius:50%; background:#fff; transition:transform .2s;
@@ -373,7 +387,7 @@ interface CartLine {
 
     /* Bouton panier */
     .btn-cart {
-      position:relative; background:#3b82f6; color:#fff; border:none;
+      position:relative; background:#FF3532; color:#fff; border:none;
       border-radius:10px; width:42px; height:42px; display:flex; align-items:center;
       justify-content:center; cursor:pointer;
     }
@@ -395,7 +409,7 @@ interface CartLine {
     .product-actions-overlay .btn-icon { background:rgba(255,255,255,.92); box-shadow:0 1px 4px rgba(0,0,0,.15); }
     .product-body { padding:14px; display:flex; flex-direction:column; flex:1; }
     .product-name { font-size:15px; font-weight:600; color:#1e293b; }
-    .product-cat { font-size:12px; color:#3b82f6; margin-top:2px; margin-bottom:6px; }
+    .product-cat { font-size:12px; color:#FF3532; margin-top:2px; margin-bottom:6px; }
     .product-desc { font-size:13px; color:#64748b; margin-bottom:12px; }
 
     /* Variantes catalogue */
@@ -408,13 +422,13 @@ interface CartLine {
     .variant-info { flex:1; display:flex; flex-direction:column; }
     .variant-name { font-size:13px; font-weight:500; color:#1e293b; }
     .variant-sku { font-size:11px; color:#94a3b8; }
-    .variant-price { font-size:13px; font-weight:600; color:#3b82f6; white-space:nowrap; }
+    .variant-price { font-size:13px; font-weight:600; color:#FF3532; white-space:nowrap; }
     .btn-add-variant {
       display:flex; align-items:center; gap:6px; padding:8px 12px;
       background:transparent; border:1px dashed #cbd5e1; border-radius:6px;
       color:#64748b; cursor:pointer; font-size:13px; margin-top:4px; width:100%;
     }
-    .btn-add-variant:hover { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
+    .btn-add-variant:hover { border-color:#FF3532; color:#FF3532; background:#eff6ff; }
     .btn-add-variant .material-icons { font-size:16px; }
 
     /* Variantes mode commande */
@@ -432,7 +446,7 @@ interface CartLine {
       font-weight:600; padding:2px 6px; border-radius:6px;
     }
     .stock-badge .material-icons { font-size:12px; }
-    .stock-badge.warehouse { background:#dbeafe; color:#1d4ed8; }
+    .stock-badge.warehouse { background:#FFF1EF; color:#E0231F; }
     .out-label { font-size:12px; color:#ef4444; font-weight:600; white-space:nowrap; }
 
     /* Contrôle quantité */
@@ -443,7 +457,7 @@ interface CartLine {
       display:flex; align-items:center; justify-content:center; color:#1e293b;
       transition:all .15s;
     }
-    .qty-btn:hover:not(:disabled) { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+    .qty-btn:hover:not(:disabled) { background:#FF3532; color:#fff; border-color:#FF3532; }
     .qty-btn:disabled { opacity:.3; cursor:not-allowed; }
     .qty-val { min-width:24px; text-align:center; font-size:14px; font-weight:600; color:#1e293b; }
 
@@ -458,20 +472,20 @@ interface CartLine {
     .cart-pname { font-size:13px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .cart-vname { font-size:11px; color:#64748b; }
     .cart-line-right { display:flex; align-items:center; gap:8px; }
-    .cart-line-total { font-size:13px; font-weight:600; color:#3b82f6; white-space:nowrap; }
+    .cart-line-total { font-size:13px; font-weight:600; color:#FF3532; white-space:nowrap; }
     .cart-total {
       display:flex; justify-content:space-between; align-items:center;
       margin-top:16px; padding-top:14px; border-top:2px solid #e2e8f0;
       font-size:15px; font-weight:700; color:#1e293b;
     }
-    .total-amount { color:#3b82f6; font-size:18px; }
+    .total-amount { color:#FF3532; font-size:18px; }
 
     /* Création rapide client */
     .client-label-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
     .client-label-row label { margin-bottom:0; }
     .btn-new-client {
       display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:500;
-      color:#3b82f6; background:transparent; border:1px solid #bfdbfe; border-radius:6px;
+      color:#FF3532; background:transparent; border:1px solid #bfdbfe; border-radius:6px;
       padding:4px 10px; cursor:pointer; transition:all .15s;
     }
     .btn-new-client:hover { background:#eff6ff; }
@@ -479,7 +493,7 @@ interface CartLine {
     .new-client-form { display:flex; flex-direction:column; gap:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:8px; }
     .btn-save-client {
       display:flex; align-items:center; justify-content:center; gap:6px;
-      background:#3b82f6; color:#fff; border:none; border-radius:8px;
+      background:#FF3532; color:#fff; border:none; border-radius:8px;
       padding:10px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s;
     }
     .btn-save-client:disabled { opacity:.6; cursor:not-allowed; }
@@ -498,14 +512,19 @@ interface CartLine {
     .field-optional { color:#94a3b8; font-size:11px; font-weight:400; }
     .field-hint { font-size:11px; color:#64748b; margin-top:4px; font-style:italic; }
     .file-upload { display:flex; align-items:center; gap:10px; padding:12px; border:1px dashed #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b; font-size:13px; }
-    .file-upload:hover { border-color:#3b82f6; color:#3b82f6; background:#eff6ff; }
+    .file-upload:hover { border-color:#FF3532; color:#FF3532; background:#eff6ff; }
     .file-upload .material-icons { font-size:20px; }
     .img-preview { width:100%; max-height:120px; object-fit:cover; border-radius:8px; margin-top:8px; }
     .form-section-title { font-size:13px; font-weight:600; color:#1e293b; text-transform:uppercase; letter-spacing:.05em; display:flex; align-items:center; gap:8px; padding-bottom:8px; border-bottom:1px solid #e2e8f0; margin-bottom:16px; }
-    .variant-count-badge { background:#3b82f6; color:#fff; border-radius:999px; font-size:11px; padding:1px 7px; font-weight:600; }
+    .variant-count-badge { background:#FF3532; color:#fff; border-radius:999px; font-size:11px; padding:1px 7px; font-weight:600; }
     .variant-block { border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:12px; background:#f8fafc; }
     .variant-block-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
     .variant-block-label { font-size:13px; font-weight:600; color:#475569; }
+
+    /* Visibilité groupes */
+    .group-checklist { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+    .group-check { display:flex; align-items:center; gap:8px; font-size:13px; color:#1e293b; cursor:pointer; }
+    .empty-hint { font-size:12px; color:#94a3b8; font-style:italic; }
   `]
 })
 export class CatalogComponent implements OnInit {
@@ -547,12 +566,27 @@ export class CatalogComponent implements OnInit {
   variantImageInputs: HTMLInputElement[] = [];
   variantForm = { name: '', price: 0, sku: '' };
 
+  sellerGroups: any[] = [];
+  selectedGroupIds: string[] = [];
+
   constructor(private api: ApiService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit() { this.load(); this.loadCategories(); }
+  ngOnInit() {
+    this.load();
+    this.loadCategories();
+    if (this.auth.isAdmin || this.auth.isStockManager) this.loadSellerGroups();
+  }
 
   load() { this.api.get<any[]>('/products').subscribe(p => { this.products = [...p]; this.cdr.detectChanges(); }); }
   loadCategories() { this.api.get<any[]>('/categories').subscribe(c => { this.categories = c; this.cdr.detectChanges(); }); }
+  loadSellerGroups() { this.api.get<any[]>('/seller-groups').subscribe(g => { this.sellerGroups = g; this.cdr.detectChanges(); }); }
+
+  isGroupSelected(id: string): boolean { return this.selectedGroupIds.includes(id); }
+  toggleGroup(id: string) {
+    this.selectedGroupIds = this.isGroupSelected(id)
+      ? this.selectedGroupIds.filter(x => x !== id)
+      : [...this.selectedGroupIds, id];
+  }
 
   // ===== MODE COMMANDE =====
   toggleOrderMode() {
@@ -688,6 +722,7 @@ export class CatalogComponent implements OnInit {
     } else {
       this.variants = [this.emptyVariant()];
     }
+    this.selectedGroupIds = (p?.group_ids || []).slice();
     this.showProductDrawer = true;
   }
 
@@ -736,6 +771,7 @@ export class CatalogComponent implements OnInit {
     if (this.productImageFile) form.append('product_image', this.productImageFile);
     const variantsPayload = this.variants.map((v: any) => ({ id: v.id, name: v.name, price: v.price }));
     form.append('variants', JSON.stringify(variantsPayload));
+    form.append('group_ids', JSON.stringify(this.selectedGroupIds));
     this.variants.forEach((v, i) => { if (v.imageFile) form.append(`variant_image_${i}`, v.imageFile); });
 
     const obs = this.editingProduct

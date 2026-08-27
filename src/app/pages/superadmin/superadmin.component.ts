@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+﻿import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -112,7 +112,122 @@ const BASE = `${environment.apiUrl}/superadmin`;
             Aucune entreprise
           </div>
         </div>
+
+        <!-- HEADER LEADS -->
+        <div class="section-header" style="margin-top:40px">
+          <h2>Leads — site vitrine</h2>
+          <div class="leads-filters">
+            <select class="field-input" [(ngModel)]="leadStatusFilter" (change)="loadLeads()">
+              <option value="">Tous les statuts</option>
+              <option value="new">Nouveau</option>
+              <option value="contacted">Contacté</option>
+              <option value="converted">Converti</option>
+              <option value="closed">Fermé</option>
+            </select>
+            <select class="field-input" [(ngModel)]="leadTypeFilter" (change)="loadLeads()">
+              <option value="">Toutes les demandes</option>
+              <option value="contact">Contact</option>
+              <option value="demo">Démo</option>
+              <option value="pack_starter">Essentiel</option>
+              <option value="pack_business">Croissance</option>
+              <option value="pack_enterprise">Sur mesure</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABLE LEADS -->
+        <div class="card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Contact</th>
+                <th>Entreprise</th>
+                <th>Téléphone</th>
+                <th>Demande</th>
+                <th>Reçu le</th>
+                <th>Statut</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of leads">
+                <td>
+                  <strong>{{ l.full_name }}</strong>
+                  <div style="font-size:12px;color:#64748b">{{ l.email }}</div>
+                </td>
+                <td>{{ l.company || '—' }}</td>
+                <td>
+                  <a *ngIf="l.phone" [href]="'https://wa.me/' + waNumber(l.phone)" target="_blank" style="color:#22A05C;text-decoration:none;font-weight:600">
+                    {{ l.phone }}
+                  </a>
+                  <span *ngIf="!l.phone">—</span>
+                </td>
+                <td><span class="subdomain-badge">{{ requestTypeLabel(l.request_type) }}</span></td>
+                <td>{{ l.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <select class="lead-status-select" [class]="'status-' + l.status" [ngModel]="l.status" (ngModelChange)="updateLeadStatus(l, $event)">
+                    <option value="new">Nouveau</option>
+                    <option value="contacted">Contacté</option>
+                    <option value="converted">Converti</option>
+                    <option value="closed">Fermé</option>
+                  </select>
+                </td>
+                <td>
+                  <button class="btn-toggle" (click)="viewLead(l)">
+                    <span class="material-icons">visibility</span> Détail
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="!leads.length" class="empty-state" style="padding:40px;text-align:center;color:#94a3b8">
+            <span class="material-icons" style="font-size:48px;display:block;margin-bottom:8px">inbox</span>
+            Aucun lead pour ces filtres
+          </div>
+        </div>
       </div>
+    </div>
+
+    <!-- DRAWER DETAIL LEAD -->
+    <div class="overlay" *ngIf="selectedLead" (click)="selectedLead=null"></div>
+    <div class="drawer" [class.open]="!!selectedLead">
+      <ng-container *ngIf="selectedLead as l">
+        <div class="drawer-header">
+          <h3>{{ l.full_name }}</h3>
+          <button class="btn-icon" (click)="selectedLead=null"><span class="material-icons">close</span></button>
+        </div>
+        <div class="drawer-body">
+          <div class="field-group">
+            <label>Email</label>
+            <div>{{ l.email }}</div>
+          </div>
+          <div class="field-group">
+            <label>Entreprise</label>
+            <div>{{ l.company || '—' }}</div>
+          </div>
+          <div class="field-group">
+            <label>Téléphone</label>
+            <div>{{ l.phone || '—' }}</div>
+          </div>
+          <div class="field-group">
+            <label>Demande</label>
+            <div>{{ requestTypeLabel(l.request_type) }}</div>
+          </div>
+          <div class="field-group">
+            <label>Reçu le</label>
+            <div>{{ l.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+          <div class="field-group">
+            <label>Message</label>
+            <div style="white-space:pre-wrap">{{ l.message || '—' }}</div>
+          </div>
+        </div>
+        <div class="drawer-footer">
+          <a *ngIf="l.phone" [href]="'https://wa.me/' + waNumber(l.phone)" target="_blank" class="btn-primary" style="text-decoration:none">
+            <span class="material-icons">chat</span> Contacter sur WhatsApp
+          </a>
+        </div>
+      </ng-container>
     </div>
 
     <!-- DRAWER MODIFIER TENANT -->
@@ -227,7 +342,7 @@ const BASE = `${environment.apiUrl}/superadmin`;
     .sa-login { min-height:100vh; display:flex; align-items:center; justify-content:center; background:#0f172a; }
     .sa-login-card { background:#1e293b; border-radius:16px; padding:40px; width:360px; display:flex; flex-direction:column; gap:20px; }
     .sa-logo { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
-    .sa-logo .material-icons { font-size:36px; color:#3b82f6; }
+    .sa-logo .material-icons { font-size:36px; color:#FF3532; }
     .sa-logo h2 { color:#f1f5f9; margin:0; font-size:22px; }
     .sa-login-card .field-group label { color:#94a3b8; }
     .sa-login-card .field-input { background:#0f172a; border-color:#334155; color:#f1f5f9; }
@@ -240,14 +355,14 @@ const BASE = `${environment.apiUrl}/superadmin`;
       padding:16px 32px; background:#0f172a; color:#fff;
     }
     .sa-header-left { display:flex; align-items:center; gap:12px; }
-    .sa-header-left .material-icons { font-size:28px; color:#3b82f6; }
+    .sa-header-left .material-icons { font-size:28px; color:#FF3532; }
     .sa-header-left h1 { margin:0; font-size:20px; color:#f1f5f9; font-weight:600; }
     .sa-body { padding:32px; max-width:1200px; margin:0 auto; }
 
     /* STATS */
     .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }
     .stat-box { background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:24px; text-align:center; }
-    .stat-num { font-size:40px; font-weight:700; color:#3b82f6; }
+    .stat-num { font-size:40px; font-weight:700; color:#FF3532; }
     .stat-lbl { font-size:13px; color:#64748b; margin-top:4px; }
 
     /* SECTION */
@@ -255,13 +370,25 @@ const BASE = `${environment.apiUrl}/superadmin`;
     .section-header h2 { margin:0; font-size:18px; font-weight:600; color:#1e293b; }
 
     /* TABLE */
-    .subdomain-badge { background:#eff6ff; color:#1d4ed8; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .subdomain-badge { background:#eff6ff; color:#E0231F; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:600; }
     .status-badge { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:500; }
     .status-badge.active { background:#dcfce7; color:#166534; }
     .status-badge.inactive { background:#fee2e2; color:#991b1b; }
     .btn-toggle { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; }
     .btn-toggle.deactivate { border-color:#fecaca; background:#fff5f5; color:#dc2626; }
     .btn-toggle .material-icons { font-size:14px; }
+
+    /* LEADS */
+    .leads-filters { display:flex; gap:8px; }
+    .leads-filters .field-input { width:auto; min-width:160px; padding:7px 10px; font-size:13px; }
+    .lead-status-select {
+      padding:5px 10px; border-radius:20px; font-size:12px; font-weight:600;
+      border:1px solid transparent; cursor:pointer; font-family:inherit;
+    }
+    .lead-status-select.status-new { background:#FFF1EF; color:#E0231F; }
+    .lead-status-select.status-contacted { background:#fef3c7; color:#92400e; }
+    .lead-status-select.status-converted { background:#dcfce7; color:#166534; }
+    .lead-status-select.status-closed { background:#f1f5f9; color:#64748b; }
 
     /* DRAWER */
     .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; }
@@ -280,7 +407,7 @@ const BASE = `${environment.apiUrl}/superadmin`;
 
     /* LOGO UPLOAD */
     .logo-upload-area { border:2px dashed #cbd5e1; border-radius:10px; cursor:pointer; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:100px; transition:border-color 0.2s; }
-    .logo-upload-area:hover { border-color:#3b82f6; }
+    .logo-upload-area:hover { border-color:#FF3532; }
     .logo-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:#94a3b8; padding:20px; }
     .logo-placeholder .material-icons { font-size:32px; }
     .logo-placeholder span { font-size:13px; }
@@ -309,6 +436,11 @@ export class SuperadminComponent implements OnInit {
   editForm = { id: '', name: '' };
   editLogoFile: File | null = null;
   editLogoPreview: string | null = null;
+
+  leads: any[] = [];
+  leadStatusFilter = '';
+  leadTypeFilter = '';
+  selectedLead: any = null;
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
@@ -343,6 +475,46 @@ export class SuperadminComponent implements OnInit {
     this.http.get<any>(`${BASE}/stats`, { headers: this.headers() }).subscribe(s => {
       this.stats = s; this.cdr.detectChanges();
     });
+    this.loadLeads();
+  }
+
+  loadLeads() {
+    const params: string[] = [];
+    if (this.leadStatusFilter) params.push(`status=${this.leadStatusFilter}`);
+    if (this.leadTypeFilter) params.push(`requestType=${this.leadTypeFilter}`);
+    const qs = params.length ? `?${params.join('&')}` : '';
+    this.http.get<any[]>(`${BASE}/leads${qs}`, { headers: this.headers() }).subscribe(l => {
+      this.leads = l; this.cdr.detectChanges();
+    });
+  }
+
+  updateLeadStatus(lead: any, status: string) {
+    this.http.patch(`${BASE}/leads/${lead.id}/status`, { status }, { headers: this.headers() }).subscribe(() => {
+      lead.status = status;
+      this.cdr.detectChanges();
+    });
+  }
+
+  viewLead(lead: any) {
+    this.selectedLead = lead;
+  }
+
+  requestTypeLabel(type: string): string {
+    const map: Record<string, string> = {
+      contact: 'Contact',
+      demo: 'Démo',
+      pack_starter: 'Essentiel',
+      pack_business: 'Croissance',
+      pack_enterprise: 'Sur mesure'
+    };
+    return map[type] || type;
+  }
+
+  waNumber(phone: string): string {
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (digits.startsWith('212')) return digits;
+    if (digits.startsWith('0')) return '212' + digits.slice(1);
+    return digits;
   }
 
   openForm() {

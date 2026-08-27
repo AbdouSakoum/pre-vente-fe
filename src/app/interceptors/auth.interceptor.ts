@@ -7,7 +7,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   return next(req).pipe(
     catchError(err => {
-      if (err.status === 401 && !req.url.includes('/auth/login')) {
+      const skipLogout = req.url.includes('/auth/login') || req.url.includes('/auth/change-password');
+      if (err.status === 401 && !skipLogout) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('must_change_password');
